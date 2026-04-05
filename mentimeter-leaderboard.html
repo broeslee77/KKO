@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Knockout Results</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg: #0d0f1a;
+  --s1: #151828;
+  --s2: #1c2035;
+  --s3: #232840;
+  --border: rgba(255,255,255,0.07);
+  --border-s: rgba(255,255,255,0.12);
+  --text: #f0f2ff;
+  --text2: #9ba3c8;
+  --text3: #5a6285;
+  --blue: #003399;
+  --red: #E20A17;
+  --grad: linear-gradient(135deg, #003399 0%, #6a0dad 50%, #E20A17 100%);
+  --grad-btn: linear-gradient(135deg, #003399, #E20A17);
+  --grad-soft: linear-gradient(135deg, rgba(0,51,153,0.35) 0%, rgba(226,10,23,0.25) 100%);
+  --glow-blue: 0 0 24px rgba(0,51,153,0.4);
+  --glow-red: 0 0 24px rgba(226,10,23,0.4);
+  --sh: 0 4px 24px rgba(0,0,0,0.4);
+  --sh-lg: 0 8px 48px rgba(0,0,0,0.5);
+  --r: 16px;
+  --r-sm: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* Background glow */
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 50% at 15% 0%, rgba(0,51,153,0.18) 0%, transparent 60%),
+  radial-gradient(ellipse 50% 45% at 85% 100%, rgba(226,10,23,0.14) 0%, transparent 55%),
+  radial-gradient(ellipse 40% 40% at 50% 50%, rgba(106,13,173,0.08) 0%, transparent 60%);
+pointer-events:none;z-index:0}
+
+/* HEADER */
+header{background:rgba(13,15,26,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.hdr{max-width:1080px;margin:0 auto;padding:0 28px;height:58px;display:flex;align-items:center;position:relative;z-index:1}
+.hdr-brand{display:flex;align-items:center;gap:10px}
+.hdr-logo{width:28px;height:28px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow-blue)}
+.hdr-logo svg{width:14px;height:14px;fill:white}
+.hdr-title{font-size:.90rem;font-weight:600;letter-spacing:-.02em;color:var(--text);white-space:nowrap}
+.hdr-sep{width:1px;height:18px;background:var(--border-s);margin:0 16px;flex-shrink:0}
+
+/* Segmented control */
+.seg{display:flex;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+.tab-btn{padding:5px 16px;background:none;border:none;font-family:inherit;font-size:.79rem;font-weight:500;color:var(--text3);cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{background:var(--s3);color:var(--text);font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* MAIN */
+main{max-width:1080px;margin:0 auto;padding:28px 28px 80px;position:relative;z-index:1}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Page heading */
+.pg-head{margin-bottom:22px}
+.pg-head h2{font-size:1.30rem;font-weight:700;letter-spacing:-.03em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block}
+
+/* CARDS */
+.card-dark{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh)}
+.card-elevated{background:var(--s2);border:1px solid var(--border-s);border-radius:var(--r);box-shadow:var(--sh-lg)}
+
+/* UPLOAD */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.drop-zone{background:var(--s1);border:1.5px dashed rgba(255,255,255,0.12);border-radius:var(--r);padding:36px 24px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.drop-zone:hover,.drop-zone.over{border-color:rgba(0,51,153,0.7);background:rgba(0,51,153,0.08);box-shadow:0 0 0 4px rgba(0,51,153,0.12),var(--sh)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{width:48px;height:48px;background:var(--grad-soft);border:1px solid rgba(255,255,255,0.1);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px}
+.drop-zone h3{font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:5px}
+.drop-zone p{font-size:.74rem;color:var(--text3)}
+
+/* INFO CARD */
+.info-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh)}
+.info-label{font-size:.67rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.info-steps{display:flex;flex-direction:column;gap:9px}
+.info-step{display:flex;align-items:flex-start;gap:10px;font-size:.79rem;color:var(--text2);line-height:1.5}
+.step-n{width:18px;height:18px;border-radius:50%;background:var(--grad);color:white;font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.info-note{margin-top:12px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--r-sm);font-size:.71rem;color:var(--text3)}
+
+/* FILE LIST */
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.file-item{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;transition:border-color .15s}
+.file-item.ok{border-color:rgba(48,209,88,0.3)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#30d158;box-shadow:0 0 6px rgba(48,209,88,0.5)}
+.file-icon{font-size:1rem}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:.80rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.69rem;color:var(--text3);margin-top:1px}
+.rm-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text3);cursor:pointer;font-size:.78rem;padding:3px 8px;border-radius:6px;transition:all .15s;flex-shrink:0}
+.rm-btn:hover{background:rgba(226,10,23,0.15);border-color:rgba(226,10,23,0.4);color:#ff6b6b}
+.wtag{display:inline-block;background:rgba(0,51,153,0.25);color:#7aa3ff;border:1px solid rgba(0,51,153,0.4);border-radius:5px;padding:1px 6px;font-size:.65rem;font-weight:600;margin-right:5px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:980px;font-family:inherit;font-weight:600;font-size:.82rem;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-primary{background:var(--grad-btn);color:#fff;box-shadow:0 2px 16px rgba(0,51,153,0.4)}
+.btn-primary:not(:disabled):hover{box-shadow:0 4px 24px rgba(0,51,153,0.6),var(--glow-blue);transform:translateY(-1px)}
+.btn-green{background:linear-gradient(135deg,#00b341,#30d158);color:#fff;box-shadow:0 2px 12px rgba(48,209,88,0.3)}
+.btn-green:not(:disabled):hover{box-shadow:0 4px 20px rgba(48,209,88,0.5);transform:translateY(-1px)}
+.btn-sm{padding:6px 14px;font-size:.75rem}
+.action-row{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+
+/* LOADER */
+.loader{display:none;align-items:center;gap:8px;color:var(--text3);font-size:.78rem}
+.loader.on{display:flex}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,0.12);border-top-color:#003399;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:22px}
+.stat{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+.stat-val{font-size:1.8rem;font-weight:700;letter-spacing:-.04em;line-height:1;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-val.plain{background:none;-webkit-text-fill-color:var(--text)}
+.stat-lbl{font-size:.68rem;font-weight:500;color:var(--text3);margin-top:5px;text-transform:uppercase;letter-spacing:.05em}
+
+/* RESULT CARD */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh-lg);overflow:hidden;margin-top:18px}
+.card-hdr{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--s2)}
+.card-hdr-l{display:flex;align-items:center;gap:10px}
+.card-hdr h2{font-size:.86rem;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.cnt{background:rgba(255,255,255,0.07);color:var(--text3);border-radius:20px;padding:2px 9px;font-size:.68rem;font-weight:600;border:1px solid var(--border)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.80rem}
+thead th{background:var(--s2);padding:9px 16px;text-align:left;font-size:.66rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+thead th.c{text-align:center}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background .1s}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:10px 16px}
+tbody td.c{text-align:center}
+.rank-cell{text-align:center;font-size:.78rem;font-weight:600;color:var(--text3)}
+.rk1{font-size:1rem}
+.rk2{font-size:1rem}
+.rk3{font-size:1rem}
+.name-cell{font-weight:600;font-size:.82rem;color:var(--text)}
+.dealer-cell{color:var(--text3);font-size:.76rem}
+.tot{font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dash{color:var(--text3);text-align:center}
+
+/* ALERTS */
+.alert{padding:10px 14px;border-radius:var(--r-sm);margin-bottom:10px;font-size:.78rem;display:flex;align-items:flex-start;gap:8px}
+.alert-warn{background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.2);color:#c9970a}
+.alert-err{background:rgba(226,10,23,0.08);border:1px solid rgba(226,10,23,0.25);color:#ff6b6b}
+
+/* DUPS */
+.dups-section{margin-top:20px}
+.dups-title{font-size:.68rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.dup-group{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;overflow:hidden}
+.dup-hdr{padding:9px 14px;background:rgba(255,180,0,0.06);border-bottom:1px solid rgba(255,180,0,0.15);display:flex;align-items:center;gap:8px;font-size:.78rem}
+.dup-hdr strong{font-weight:600;color:#c9970a}
+.dup-badge{margin-left:auto;background:rgba(255,180,0,0.15);color:#c9970a;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700}
+.dup-entries{padding:8px 14px;display:flex;flex-direction:column;gap:4px}
+.dup-entry{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:7px;font-size:.75rem}
+.dup-entry .dn{font-weight:500;color:var(--text)}
+.dup-entry .dd{color:var(--text3);font-size:.71rem}
+.dup-entry .wk{margin-left:auto;font-size:.69rem;color:var(--text3)}
+
+/* Misc */
+.wk-labels{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:680px){.upload-grid{grid-template-columns:1fr}main{padding:20px 16px 60px}.hdr{padding:0 16px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">
+        <svg viewBox="0 0 14 14"><path d="M7 1L13 4v6L7 13 1 10V4z" fill="none" stroke="white" stroke-width="1.5"/></svg>
+      </div>
+      <span class="hdr-title">Knowledge Knockout Results</span>
+    </div>
+    <div class="hdr-sep"></div>
+    <div class="seg">
+      <button class="tab-btn active" onclick="switchTab('weekly')">Weekly</button>
+      <button class="tab-btn" onclick="switchTab('monthly')">Monthly</button>
+    </div>
+    <div class="hdr-right">
+      <button class="btn btn-green btn-sm" id="hdr-dl-mo" onclick="exportMonthly()" style="display:none">↓ Download Excel</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- WEEKLY -->
+<div id="tab-weekly" class="tab-panel active">
+  <div class="pg-head"><h2>Weekly Report</h2></div>
+  <div class="drop-zone" id="wk-drop"
+       ondragover="drag(event,'wk')" ondragleave="undrag(event,'wk')" ondrop="drop(event,'wk')">
+    <input type="file" accept=".xlsx,.xls" onchange="loadWeekly(this)" id="wk-input">
+    <div class="drop-icon">📂</div>
+    <h3>Drop Mentimeter file here</h3>
+    <p>Supports .xlsx · or click to browse</p>
+  </div>
+  <div class="file-list" id="wk-files"></div>
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="runWeekly()" id="wk-btn" disabled>Process File</button>
+    <button class="btn btn-green btn-sm" id="wk-dl" onclick="exportWeekly()" style="display:none">↓ Download Excel</button>
+    <div class="loader" id="wk-loader"><div class="spin"></div>Processing…</div>
+  </div>
+  <div id="wk-out"></div>
+</div>
+
+<!-- MONTHLY -->
+<div id="tab-monthly" class="tab-panel">
+  <div class="pg-head"><h2>Monthly Report</h2></div>
+  <div class="drop-zone" id="mo-drop"
+       ondragover="drag(event,'mo')" ondragleave="undrag(event,'mo')" ondrop="drop(event,'mo')">
+    <input type="file" accept=".xlsx,.xls" multiple onchange="loadMonthly(this)" id="mo-input">
+    <div class="drop-icon">📂</div>
+    <h3>Drop Mentimeter files here</h3>
+    <p>One file per week · up to 5 · sorted by date automatically</p>
+  </div>
+  <div class="file-list" id="mo-files"></div>
+  <div id="mo-label-wrap" style="display:none;margin-top:10px">
+    <div style="font-size:.67rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Files queued — will be sorted by quiz date</div>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="runMonthly()" id="mo-btn" disabled>Generate Monthly Report</button>
+    <div class="loader" id="mo-loader"><div class="spin"></div>Processing &amp; matching participants…</div>
+  </div>
+  <div id="mo-out"></div>
+</div>
+
+</main>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const S = { wkFile: null, wkData: null, moFiles: [], moData: null };
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['weekly','monthly'][i] === t));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.getElementById('hdr-dl-mo').style.display = (t==='monthly' && S.moData) ? 'flex' : 'none';
+}
+
+// ── DRAG & DROP ────────────────────────────────────────
+function drag(e, p)  { e.preventDefault(); document.getElementById(p+'-drop').classList.add('over'); }
+function undrag(e, p){ document.getElementById(p+'-drop').classList.remove('over'); }
+function drop(e, p)  {
+  e.preventDefault(); undrag(e, p);
+  const fs = e.dataTransfer.files;
+  if (p === 'wk') applyWeekly(fs[0]);
+  else applyMonthly(Array.from(fs));
+}
+
+// ── FILE MANAGEMENT ────────────────────────────────────
+function loadWeekly(inp) { applyWeekly(inp.files[0]); }
+function applyWeekly(f) {
+  if (!f) return;
+  S.wkFile = f;
+  document.getElementById('wk-files').innerHTML = fileItemHtml(f, 0, 'wk');
+  document.getElementById('wk-btn').disabled = false;
+  document.getElementById('wk-out').innerHTML = '';
+}
+function removeWk() {
+  S.wkFile = null; S.wkData = null;
+  document.getElementById('wk-files').innerHTML = '';
+  document.getElementById('wk-btn').disabled = true;
+  document.getElementById('wk-out').innerHTML = '';
+  document.getElementById('wk-input').value = '';
+}
+
+function loadMonthly(inp) { applyMonthly(Array.from(inp.files)); }
+function applyMonthly(files) {
+  for (const f of files) {
+    if (S.moFiles.length >= 5) break;
+    if (!S.moFiles.find(x => x.name === f.name)) S.moFiles.push(f);
+  }
+  renderMoFiles(); renderMoLabels();
+  document.getElementById('mo-btn').disabled = S.moFiles.length < 1;
+  document.getElementById('mo-out').innerHTML = '';
+}
+function removeMo(i) {
+  S.moFiles.splice(i, 1);
+  renderMoFiles(); renderMoLabels();
+  document.getElementById('mo-btn').disabled = S.moFiles.length < 1;
+  document.getElementById('mo-out').innerHTML = '';
+  document.getElementById('mo-input').value = '';
+}
+function renderMoFiles() {
+  document.getElementById('mo-files').innerHTML = S.moFiles.map((f, i) => fileItemHtml(f, i, 'mo')).join('');
+}
+function renderMoLabels() {
+  const wrap = document.getElementById('mo-label-wrap');
+  if (!S.moFiles.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+}
+function fileItemHtml(f, i, type) {
+  const rm = type === 'wk' ? `removeWk()` : `removeMo(${i})`;
+  const tag = type === 'mo' ? `<span class="wtag">Week ${i+1}</span> ` : '';
+  return `<div class="file-item ok">
+    <span class="dot ok"></span><span class="file-icon">📊</span>
+    <div class="file-info">
+      <div class="file-name">${tag}${esc(f.name)}</div>
+      <div class="file-meta">${fmtBytes(f.size)}</div>
+    </div>
+    <button class="rm-btn" onclick="${rm}">✕</button>
+  </div>`;
+}
+
+// ── EXCEL READER ───────────────────────────────────────
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        // raw:true keeps numeric values as numbers
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+        res(data);
+      } catch(err) { rej(err); }
+    };
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// ── PARSER ─────────────────────────────────────────────
+// Real Mentimeter structure:
+//   Row 0-1: junk notes
+//   Row 2:   headers  → look for cells ending in ": Score"
+//   Col 5:   "Enter your details: Name & Surname"
+//   Col 6:   "Enter your details: Dealership"
+//   Score cols: every header ending with ": Score"
+// ───────────────────────────────────────────────────────
+function parseSheet(raw) {
+  // 1. Find header row — first row that has ≥1 cell ending in ': score'
+  let hdrIdx = -1;
+  for (let i = 0; i < Math.min(raw.length, 20); i++) {
+    const row = raw[i] || [];
+    if (row.some(c => typeof c === 'string' && c.trim().toLowerCase().endsWith(': score'))) {
+      hdrIdx = i; break;
+    }
+  }
+  // Fallback: row with both 'name' and 'score'
+  if (hdrIdx === -1) {
+    for (let i = 0; i < Math.min(raw.length, 20); i++) {
+      const strs = (raw[i] || []).map(c => String(c || '').toLowerCase());
+      if (strs.some(c => c.includes('name')) && strs.some(c => c.includes('score'))) {
+        hdrIdx = i; break;
+      }
+    }
+  }
+  if (hdrIdx === -1) throw new Error('Cannot find header row. Is this a Mentimeter export?');
+
+  const headers = (raw[hdrIdx] || []).map(c => String(c || '').trim());
+
+  // 2. Name column — "Name & Surname" or "name & surname"
+  let nameCol = -1;
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i].toLowerCase();
+    if (h.includes('name & surname') || h.includes('name and surname')) { nameCol = i; break; }
+  }
+  // Fallback: first header with 'name' not in a question sub-column
+  if (nameCol === -1) {
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i].toLowerCase();
+      if (h.includes('name') && !h.endsWith(': name') && !h.includes('emoji') && !h.includes('score') && !h.includes('answer')) {
+        nameCol = i; break;
+      }
+    }
+  }
+  if (nameCol === -1) throw new Error('Cannot find "Name & Surname" column.');
+
+  // 3. Dealer column
+  let dealerCol = -1;
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i].toLowerCase();
+    if (h.includes('dealership') || h.includes('dealer')) { dealerCol = i; break; }
+  }
+
+  // 4. Score columns — headers ending exactly ': Score' (case-insensitive)
+  const scoreCols = [];
+  for (let i = 0; i < headers.length; i++) {
+    if (headers[i].toLowerCase().endsWith(': score')) {
+      const h = headers[i];
+      // Build short label: "Q1" … "Q20", "Bonus 1", "Bonus 2"
+      const bonusM = h.match(/BONUS QUESTION\s*(\d+)/i);
+      const numM   = h.match(/^(\d+)[.\s]/);
+      let label;
+      if (bonusM)    label = `Bonus ${bonusM[1]}`;
+      else if (numM) label = `Q${numM[1]}`;
+      else           label = `Score`;
+      scoreCols.push({ idx: i, label });
+    }
+  }
+  if (scoreCols.length === 0) throw new Error('No Score columns found. Headers must end with ": Score".');
+
+  // 5. Parse data rows
+  const rows = [];
+  for (let r = hdrIdx + 1; r < raw.length; r++) {
+    const row = raw[r] || [];
+    const rawName = row[nameCol];
+    const name = String(rawName || '').trim();
+    if (!name || name.toLowerCase() === 'null' || name === '') continue;
+
+    const dealer = dealerCol !== -1 ? String(row[dealerCol] || '').trim() : '';
+    const scores = {};
+    let total = 0;
+    for (const sc of scoreCols) {
+      const v = row[sc.idx];
+      // v is numeric (raw:true) or null
+      const num = (v === null || v === undefined) ? 0 : (isNaN(Number(v)) ? 0 : Number(v));
+      scores[sc.label] = num;
+      total += num;
+    }
+    rows.push({ name, dealer, scores, total });
+  }
+
+  if (rows.length === 0) throw new Error('No participant rows found after the header row.');
+
+  // 6. Sort + rank (each participant gets their own sequential rank)
+  rows.sort((a, b) => b.total - a.total);
+  rows.forEach((r, i) => { r.rank = i + 1; });
+
+  return { rows, scoreCols: scoreCols.map(s => s.label) };
+}
+
+// ── WEEKLY ─────────────────────────────────────────────
+async function runWeekly() {
+  const btn = document.getElementById('wk-btn');
+  const loader = document.getElementById('wk-loader');
+  btn.disabled = true; loader.classList.add('on');
+  try {
+    const raw = await readFile(S.wkFile);
+    const result = parseSheet(raw);
+    S.wkData = result;
+    renderWeekly(result);
+    document.getElementById('wk-dl').style.display = 'flex';
+  } catch(err) {
+    document.getElementById('wk-out').innerHTML = `<div class="alert alert-err">❌ ${esc(err.message)}</div>`;
+    console.error(err);
+  }
+  btn.disabled = false; loader.classList.remove('on');
+}
+
+function renderWeekly({ rows, scoreCols }) {
+  if (!rows.length) {
+    document.getElementById('wk-out').innerHTML = `<div class="alert alert-warn">⚠️ No participants found.</div>`;
+    return;
+  }
+  const avg = Math.round(rows.reduce((s, r) => s + r.total, 0) / rows.length);
+  const trows = rows.map(r => {
+    const rkd = r.rank <= 3
+      ? `<span class="rk${r.rank}">${['🥇','🥈','🥉'][r.rank-1]}</span>`
+      : `<span class="rank-cell">${r.rank}</span>`;
+    return `<tr>
+      <td class="rank-cell">${rkd}</td>
+      <td class="name-cell">${esc(r.name)}</td>
+      <td class="dealer-cell">${esc(r.dealer)}</td>
+      <td class="c tot">${r.total.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('wk-out').innerHTML = `
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val blue">${rows.length}</div><div class="stat-lbl">Participants</div></div>
+      <div class="stat"><div class="stat-val">${scoreCols.length}</div><div class="stat-lbl">Score Rounds</div></div>
+      <div class="stat"><div class="stat-val red">${rows[0].total.toLocaleString()}</div><div class="stat-lbl">Top Score</div></div>
+      <div class="stat"><div class="stat-val">${avg.toLocaleString()}</div><div class="stat-lbl">Avg Score</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-hdr-l">
+          <h2>Weekly Leaderboard</h2>
+          <span class="cnt">${rows.length} participants</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th class="c">Rank</th>
+            <th>Name &amp; Surname</th>
+            <th>Dealership</th>
+            <th class="c">Total</th>
+          </tr></thead>
+          <tbody>${trows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── MASTER LIST ────────────────────────────────────────
+const MASTER_LIST = [{"name":"JP Rautenbach","dealer":"Alberton"},{"name":"Luan De Bruin","dealer":"Alberton"},{"name":"Louis Maximilian Joubert","dealer":"Alberton"},{"name":"Blair Ritchie Sim","dealer":"Alberton"},{"name":"Brian Mposula","dealer":"Alberton"},{"name":"Noluthando Thobela","dealer":"Alberton"},{"name":"Collen Mlalazi","dealer":"Alberton"},{"name":"Tshepang Moripe","dealer":"Alberton"},{"name":"Kyle Diamond","dealer":"Alberton"},{"name":"Ricardo du Plessis","dealer":"Alberton"},{"name":"Charles Diamond","dealer":"Alberton"},{"name":"Juan Tiaan Van Tonder","dealer":"Alberton"},{"name":"Nicolette Theron","dealer":"Alberton"},{"name":"Mark Mcpherson","dealer":"Alberton"},{"name":"Gareth Hampson","dealer":"Amanzimtoti"},{"name":"Steven Van den Bergh","dealer":"Amanzimtoti"},{"name":"Bongani Chiya","dealer":"Amanzimtoti"},{"name":"Sam Sosibo","dealer":"Amanzimtoti"},{"name":"PG Moodley","dealer":"Amanzimtoti"},{"name":"Shaun Soupen","dealer":"Amanzimtoti"},{"name":"Craig Bester","dealer":"Amanzimtoti"},{"name":"Nathi Mhlongo","dealer":"Ballito"},{"name":"Santos Kahn","dealer":"Ballito"},{"name":"Luke Stoffels","dealer":"Ballito"},{"name":"Sthembile Yengwa","dealer":"Ballito"},{"name":"Kelishen Pillay","dealer":"Ballito"},{"name":"Sibongakonke Wela","dealer":"Ballito"},{"name":"Juan Du Toit","dealer":"Ballito"},{"name":"Siyanda Mlaba","dealer":"Ballito"},{"name":"Nkosentsha dawson","dealer":"Ballito"},{"name":"Nosipho Nxumalo","dealer":"Ballito"},{"name":"Bernhard Maritz","dealer":"Ballito"},{"name":"Andre Bornman","dealer":"Ballito"},{"name":"Sheldon Tonkin","dealer":"Ballito"},{"name":"Blessing Sibiya","dealer":"Ballito"},{"name":"Candice Cooke","dealer":"Ballito"},{"name":"Lance Selley","dealer":"Bassonia"},{"name":"Juan Van der Merwe","dealer":"Bassonia"},{"name":"Cherise van der berg","dealer":"Bassonia"},{"name":"Sbongile Mtshali","dealer":"Bassonia"},{"name":"Jabulani Ngwenya","dealer":"Bassonia"},{"name":"Zolile Mkotywa","dealer":"Bassonia"},{"name":"Dimakatso Ntuli","dealer":"Bassonia"},{"name":"Angela Temlett","dealer":"Bassonia"},{"name":"Joey Van Der Merwe","dealer":"Bassonia"},{"name":"Warryn Cock","dealer":"Bassonia"},{"name":"Witty Thobejane","dealer":"Bassonia"},{"name":"Brandon Harvey","dealer":"Bassonia"},{"name":"Jason Alwyn Vorster","dealer":"Bassonia"},{"name":"Victoria Simelane","dealer":"Bassonia"},{"name":"Rico Singh","dealer":"Bassonia"},{"name":"Fred Groenewald","dealer":"Bassonia"},{"name":"Shanon Naidoo","dealer":"Bassonia"},{"name":"Prevesh Moodley","dealer":"Bedfordview (Bruma)"},{"name":"Lavern Richards","dealer":"Bedfordview (Bruma)"},{"name":"Byron Hamman","dealer":"Bedfordview (Bruma)"},{"name":"Vutomi Manzini","dealer":"Bedfordview (Bruma)"},{"name":"Tshegofatso Mokate","dealer":"Bedfordview (Bruma)"},{"name":"Eiddries Alias","dealer":"Bedfordview (Bruma)"},{"name":"Ace Mokoane","dealer":"Bedfordview (Bruma)"},{"name":"Tebogo Mapeka","dealer":"Bedfordview (Bruma)"},{"name":"Jabulani Mahlangu","dealer":"Bethlehem"},{"name":"Reeza Sivai","dealer":"Bethlehem"},{"name":"Natasja Meiring","dealer":"Bethlehem"},{"name":"Dian Van Wyk","dealer":"Bethlehem"},{"name":"Jonathan Frohlich","dealer":"Bethlehem"},{"name":"Burger Genis","dealer":"Blackheath"},{"name":"Edwin Dyason","dealer":"Blackheath"},{"name":"Sharnice Pick","dealer":"Blackheath"},{"name":"Riyaad Petersen","dealer":"Blackheath"},{"name":"Ndakhe Jikelo","dealer":"Blackheath"},{"name":"Meredith Ryan","dealer":"Blackheath"},{"name":"Megan Morgenrood","dealer":"Blackheath"},{"name":"Lynette Fourie","dealer":"Blackheath"},{"name":"Gerdus Slabber","dealer":"Blackheath"},{"name":"Ricus van Zyl","dealer":"Bloemfontein"},{"name":"Reinhardt Hedder","dealer":"Bloemfontein"},{"name":"Nyakallo Kolobe","dealer":"Bloemfontein"},{"name":"Hanicia Roman","dealer":"Bloemfontein"},{"name":"Marnu Smit","dealer":"Bloemfontein"},{"name":"Joseph Ntlhokoe","dealer":"Bloemfontein"},{"name":"Tshabadira Senoge","dealer":"Bloemfontein"},{"name":"Ruhan Marx","dealer":"Bloemfontein"},{"name":"Gerdus Slabber","dealer":"Blackheath"},{"name":"Tshepo Letsoka","dealer":"Bloemfontein"},{"name":"Thando Malaku","dealer":"Bloemfontein"},{"name":"Wayne Fourie","dealer":"Bloemfontein"},{"name":"Marizelle Linde","dealer":"Bloemfontein"},{"name":"Alexander Palm","dealer":"Bloemfontein"},{"name":"Mauritz Ruan Benade","dealer":"Bloemfontein"},{"name":"Franco Nortier","dealer":"Bloemfontein"},{"name":"Neille Faber","dealer":"Bloemfontein"},{"name":"Bongani Nzimande","dealer":"Bloemfontein"},{"name":"Petri Jacobs","dealer":"Bloemfontein"},{"name":"Zacharia Matlhakoleng","dealer":"Bloemfontein"},{"name":"Bennie Venter","dealer":"Bloemfontein"},{"name":"Zenrico Smith","dealer":"Bloemfontein"},{"name":"Sean Naested","dealer":"Boksburg"},{"name":"Morne Minnaar","dealer":"Boksburg"},{"name":"Litha Danana","dealer":"Boksburg"},{"name":"Carel Van Greunen","dealer":"Boksburg"},{"name":"Fabian Andre Green","dealer":"Boksburg"},{"name":"Vernon Grobler","dealer":"Boksburg"},{"name":"Simone Van Breda","dealer":"Boksburg"},{"name":"Elekanyani Mulaudzi","dealer":"Boksburg"},{"name":"Deon Shaikh","dealer":"Boksburg"},{"name":"Thabang Seshothela","dealer":"Boksburg"},{"name":"Sello Ramapepe","dealer":"Bramley"},{"name":"Foziah Mohamed","dealer":"Bramley"},{"name":"Russel Swartz","dealer":"Bramley"},{"name":"Daniel Natali","dealer":"Bramley"},{"name":"Craig Gillesen","dealer":"Bramley"},{"name":"Elsa Botha","dealer":"Bramley"},{"name":"Siyabonga Hlatshwayo","dealer":"Bramley"},{"name":"Nompumelelo Hlatshwayo","dealer":"Bramley"},{"name":"Bongi Mkhonza","dealer":"Bramley"},{"name":"Daniella Labuschagne","dealer":"Bramley"},{"name":"Tiaan Boshoff","dealer":"Bramley"},{"name":"Siyabonga M. T. Genge","dealer":"Bramley"},{"name":"Charline Clark","dealer":"Bramley"},{"name":"Damien Smit","dealer":"Bramley"},{"name":"Daphney Maruana","dealer":"Bramley"},{"name":"Yagan Govender","dealer":"Bramley"},{"name":"Paul White","dealer":"Bramley"},{"name":"Thabang Molefe","dealer":"Bramley"},{"name":"Evans Mpeko","dealer":"Bramley"},{"name":"Sergio Fernandez","dealer":"Bramley"},{"name":"Niell Randall","dealer":"Bramley"},{"name":"Desray Neale","dealer":"Bramley"},{"name":"Rob Wood","dealer":"Bramley"},{"name":"Adrian Victor","dealer":"Bramley"},{"name":"Piwo Jantjies","dealer":"Bramley"},{"name":"Humphrey Mabuza","dealer":"Bramley"},{"name":"Mzimkhulu Twala","dealer":"Bramley"},{"name":"George Azzie","dealer":"Bramley"},{"name":"Boitumelo Mosaka","dealer":"Bramley"},{"name":"Hope Legodi","dealer":"Bramley"},{"name":"Kabelo Ramohlabi","dealer":"Bramley"},{"name":"Thobani Bhengu","dealer":"Bramley"},{"name":"Zandile Hlongwane","dealer":"Bramley"},{"name":"Ntokozo Myathaza","dealer":"Bramley"},{"name":"Nompumelelo Mpanza","dealer":"Bramley"},{"name":"Ayanda Moyo","dealer":"Bramley"},{"name":"Kgotso Maila","dealer":"Bramley"},{"name":"Mduduzi Nkwazi","dealer":"Bramley"},{"name":"Sihle Lutya","dealer":"Bramley"},{"name":"Lucia Malapane","dealer":"Bramley"},{"name":"Jerome Veludo","dealer":"Bramley"},{"name":"Sideeka Sooka","dealer":"Bramley"},{"name":"Michael De Bruyn","dealer":"Brits"},{"name":"Elizabeth Vd Merwe","dealer":"Brits"},{"name":"Ulrich Gilbert","dealer":"Brits"},{"name":"Tyler Du Toit","dealer":"Brits"},{"name":"Franco De Bruyn","dealer":"Brits"},{"name":"Dewald Henning","dealer":"Brits"},{"name":"Pierre De Villiers","dealer":"Brits"},{"name":"Marietjie Van Der Merwe","dealer":"Brits"},{"name":"Percy Mehlape","dealer":"Brits"},{"name":"Amber Barun","dealer":"Brits"},{"name":"Hernus Vd Nist","dealer":"Brits"},{"name":"Ricky Few-Denton","dealer":"Brits"},{"name":"Gert De Bruin","dealer":"Brits"},{"name":"Hennie De Villiers","dealer":"Bronkhorstspruit"},{"name":"George Watkins","dealer":"Bronkhorstspruit"},{"name":"Tshepo Shipalana","dealer":"Bronkhorstspruit"},{"name":"Gideon Lubbe","dealer":"Bronkhorstspruit"},{"name":"Andrew Mohotsi","dealer":"Bruma"},{"name":"Sipho Danana","dealer":"Bruma"},{"name":"Veniel Bachu","dealer":"Bruma"},{"name":"Felister Mangwe","dealer":"Bruma"},{"name":"Brandon Roos","dealer":"Bruma"},{"name":"Brendon Collins","dealer":"Bruma"},{"name":"Shaanel Groenewald","dealer":"Bruma"},{"name":"Wayde Campbell","dealer":"Bruma"},{"name":"Garth Scott","dealer":"Bruma"},{"name":"Jason Roberts","dealer":"Bruma"},{"name":"Thulani Nyakwe","dealer":"Bruma"},{"name":"Keagan Scullard","dealer":"Bruma"},{"name":"Poppy Radjoo","dealer":"Bruma"},{"name":"Colin Thorpe","dealer":"Bryanston"},{"name":"George Ehlers","dealer":"Bryanston"},{"name":"Charity Ndlovu","dealer":"Bryanston"},{"name":"Humphrey Somniso","dealer":"Bryanston"},{"name":"Johanna Mudau","dealer":"Bryanston"},{"name":"Boni Magudulela","dealer":"Bryanston"},{"name":"Carmen Webster","dealer":"Bryanston"},{"name":"Sunnyboy Khoase","dealer":"Bryanston"},{"name":"Ashley Naidoo","dealer":"Bryanston"},{"name":"Nivash Rajah","dealer":"Bryanston"},{"name":"Zenzele Masango","dealer":"Bryanston"},{"name":"Riaan Aslam","dealer":"Bryanston"},{"name":"Andre Van Niekerk","dealer":"Bryanston"},{"name":"Thabang Aphane","dealer":"Bryanston"},{"name":"Andre Petzer","dealer":"Bryanston"},{"name":"Albert Oberholzer","dealer":"Bryanston"},{"name":"Rivaan Gajraj","dealer":"Bryanston"},{"name":"Vusi Ngidi","dealer":"Bryanston"},{"name":"Pietro Volo","dealer":"Bryanston"},{"name":"Rionn Hattingh","dealer":"Bryanston"},{"name":"Tony Maselela","dealer":"Bryanston"},{"name":"JP Kleinhans","dealer":"Bryanston"},{"name":"Debbie Winnaar","dealer":"Bryanston"},{"name":"Pieter Koen","dealer":"Bryanston"},{"name":"Karen Naude","dealer":"Bryanston"},{"name":"Stephen Ramasilo","dealer":"Bryanston"},{"name":"Panache Mashaba","dealer":"Bryanston"},{"name":"Yasir Suliman","dealer":"Bryanston"},{"name":"Jod\u00e9 Mostert","dealer":"Bryanston"},{"name":"Didier Kazadi","dealer":"Bryanston"},{"name":"Tanya De Jager","dealer":"Bryanston"},{"name":"Brian Kaukonde","dealer":"Bulawayo"},{"name":"Sipho Ndebele","dealer":"Bulawayo"},{"name":"Chelsea Bhodho","dealer":"Bulawayo"},{"name":"Cleopas Mushayavanhu","dealer":"Bulawayo"},{"name":"Henry Buyanga","dealer":"Bulawayo"},{"name":"Ronnie Chisoni","dealer":"Bulawayo"},{"name":"Elexander Shoko","dealer":"Bulawayo"},{"name":"Petwine Garutsa","dealer":"Bulawayo"},{"name":"Cynthia Phiri","dealer":"Bulawayo"},{"name":"Shandrin Ndebele","dealer":"Bulawayo"},{"name":"Mohamed Tayob","dealer":"Burgersfort"},{"name":"Sello Rekhotso","dealer":"Burgersfort"},{"name":"Koena Bopape","dealer":"Burgersfort"},{"name":"Kedibone Makola","dealer":"Burgersfort"},{"name":"Penny Sibanyoni","dealer":"Burgersfort"},{"name":"Johan Moller","dealer":"Burgersfort"},{"name":"Wian Francois Visser","dealer":"Burgersfort"},{"name":"Stevan Jacquet","dealer":"Burgersfort"},{"name":"Pricilla Ntsimane","dealer":"Burgersfort"},{"name":"Jerry Rekhotso","dealer":"Burgersfort"},{"name":"Ria Mashile","dealer":"Burgersfort"},{"name":"Israel Kgohlwane","dealer":"Burgersfort"},{"name":"Maree Volschenk","dealer":"Cape Gate"},{"name":"Bradley Pillay","dealer":"Cape Gate"},{"name":"Christopher Swart","dealer":"Cape Gate"},{"name":"Dominique Gerlach","dealer":"Cape Gate"},{"name":"Deidre Thomas","dealer":"Cape Gate"},{"name":"Jean Joubert","dealer":"Cape Gate"},{"name":"Johan Koegelenberg","dealer":"Cape Gate"},{"name":"Ashley Natus","dealer":"Cape Gate"},{"name":"Cameron Tennant","dealer":"Cape Gate"},{"name":"Sonja Zeelie","dealer":"Cape Gate"},{"name":"Daniel Dawson","dealer":"Cape Gate"},{"name":"Willem Johannes De Wet","dealer":"Cape Gate"},{"name":"Heindright Van Zyl","dealer":"Cape Gate"},{"name":"Josua Botha","dealer":"Cape Gate"},{"name":"Clinton Trusky","dealer":"Cape Gate"},{"name":"Jiaan Smit","dealer":"Cape Town"},{"name":"Donavan Hodgman","dealer":"Cape Town"},{"name":"Ryan Coetzee","dealer":"Cape Town"},{"name":"Celeste Longmore","dealer":"Cape Town"},{"name":"Jeffrey Seroalo","dealer":"Cape Town"},{"name":"Johannes(Nardus) Van Der Watt","dealer":"Cape Town"},{"name":"Zoehdie Diedericks","dealer":"Cape Town"},{"name":"Clayton Nortier","dealer":"Cape Town"},{"name":"Dale Rossouw","dealer":"Cape Town"},{"name":"Reinhardt Heydenrych","dealer":"Cape Town"},{"name":"Frikkie Schoombee","dealer":"Cape Town"},{"name":"Gareth Stein","dealer":"Cape Town"},{"name":"Janine Wentzel","dealer":"Cape Town"},{"name":"Stephen Le Roux","dealer":"Cape Town"},{"name":"Oscar Lawrence","dealer":"Cape Town"},{"name":"Simon Moeketsi","dealer":"Cape Town"},{"name":"Chanelle Holmes","dealer":"Cape Town"},{"name":"Toufiq Bailey","dealer":"Cape Town"},{"name":"Nadia Kaloo","dealer":"Carletonville"},{"name":"Farhaad Kaloo","dealer":"Carletonville"},{"name":"Andries Erasmus","dealer":"Carletonville"},{"name":"Francois Kroukamp","dealer":"Carletonville"},{"name":"Nina Mabitle","dealer":"Carletonville"},{"name":"Eric Sijadu","dealer":"Carletonville"},{"name":"Jack Bidi","dealer":"Carletonville"},{"name":"Phillemon Penyane","dealer":"Carletonville"},{"name":"Nadine Uys","dealer":"Centurion"},{"name":"Johnathan Sherriff","dealer":"Centurion"},{"name":"Colin Bolter","dealer":"Centurion"},{"name":"Garth Harper","dealer":"Centurion"},{"name":"Grant Barun","dealer":"Centurion"},{"name":"Lee Kunneke","dealer":"Centurion"},{"name":"Jaco (Jakes) Oosthuizen","dealer":"Centurion"},{"name":"Lomzi Mambukwe","dealer":"Centurion"},{"name":"Minette Strydom","dealer":"Centurion"},{"name":"Chantal Cornell","dealer":"Centurion"},{"name":"Alex DeBeer","dealer":"Centurion"},{"name":"Thabo Kale","dealer":"Centurion"},{"name":"Kgau Mohapi","dealer":"Centurion"},{"name":"Johann Swart","dealer":"Centurion"},{"name":"Gustav Bronkhorst","dealer":"Centurion"},{"name":"Keanen McCarthy","dealer":"Centurion"},{"name":"Charmaine Janse van Rensburg","dealer":"Centurion"},{"name":"Dewald du Preez","dealer":"Centurion"},{"name":"Mmantwa Mogale","dealer":"Centurion"},{"name":"Jaco Labuschagne","dealer":"Centurion"},{"name":"Jovan Oosthuizen","dealer":"Centurion"},{"name":"Hennie Steyn","dealer":"Centurion"},{"name":"Faraaz Adam","dealer":"Centurion"},{"name":"JP Van Niekerk","dealer":"Centurion"},{"name":"Albertina Kapa","dealer":"Centurion"},{"name":"Leo Van Wymeersch","dealer":"Clearwater"},{"name":"Glamorious Nyathi","dealer":"Clearwater"},{"name":"Stefan Weideman","dealer":"Clearwater"},{"name":"Warren Du Plessis","dealer":"Clearwater"},{"name":"Chrizelda Olivier","dealer":"Clearwater"},{"name":"Roland Knott","dealer":"Clearwater"},{"name":"Mathys Snyman","dealer":"Clearwater"},{"name":"Godfrey Mamukeyane","dealer":"Clearwater"},{"name":"Megan Morgenrood","dealer":"Clearwater"},{"name":"Marius Mulder","dealer":"Clearwater"},{"name":"Kagiso Phatshoane","dealer":"Clearwater"},{"name":"Charlene Van Wyk","dealer":"Clearwater"},{"name":"Riaan Smit","dealer":"Clearwater"},{"name":"Siphiwe Motloung","dealer":"Clearwater"},{"name":"Allan Barrett Janse Van Rensburg","dealer":"Clearwater"},{"name":"Grant Craig Emmanuel","dealer":"Constantia"},{"name":"Tarryn Alexander","dealer":"Constantia"},{"name":"Tertius Kotze","dealer":"Constantia"},{"name":"Valencia Faith Plaatjies","dealer":"Constantia"},{"name":"Steyn Zwiegelaar","dealer":"Constantia"},{"name":"Eghard van Vuuren","dealer":"Constantia"},{"name":"Jethro Dodgen","dealer":"Constantia"},{"name":"Nur Abdurahman","dealer":"Constantia"},{"name":"Andre-Ross Louw","dealer":"Constantia"},{"name":"Ismail Pandor","dealer":"Dundee"},{"name":"Umar Vawda","dealer":"Dundee"},{"name":"Junaid Pandor","dealer":"Dundee"},{"name":"Lifa Sikhakhane","dealer":"Dundee"},{"name":"Ngcebo Ngema","dealer":"Dundee"},{"name":"David Christopher Emond","dealer":"Durban"},{"name":"Reeza Rangila","dealer":"Durban"},{"name":"Viren Bridgraj","dealer":"Durban"},{"name":"Devesh Gopee","dealer":"Durban"},{"name":"Sandile Ndlovu","dealer":"Durban"},{"name":"Sumanth Diahnan","dealer":"Durban"},{"name":"Alex Luvuyo Matandabuzo","dealer":"Durban"},{"name":"Zaid Mohamed Fariuk Moolla","dealer":"Durban"},{"name":"Stalone Manikum","dealer":"Durban"},{"name":"Devraj Andi Nair","dealer":"Durban"},{"name":"Clive Yerriah","dealer":"Durban"},{"name":"Keenan Parmanand","dealer":"Durban"},{"name":"Christopher Sithole","dealer":"Durban"},{"name":"Daniel Lance Butcher","dealer":"Durban"},{"name":"Callen Govender","dealer":"Durban"},{"name":"Brenton Cole","dealer":"Durban Central"},{"name":"Sanele Ngidi","dealer":"Durban Central"},{"name":"Nokwanda Khoza","dealer":"Durban Central"},{"name":"Mandla Khumalo","dealer":"Durban Central"},{"name":"Bronwyn Daniels","dealer":"Durban Central"},{"name":"Sakhile Mbatha","dealer":"Durban Central"},{"name":"Zinhle Mzulwini","dealer":"Durban Central"},{"name":"Evelyn Pillay","dealer":"Durban Central"},{"name":"Nhlanhla Zungu","dealer":"Durban Central"},{"name":"Philani Gumede","dealer":"Durban Central"},{"name":"Deepak Panday","dealer":"Durban Central"},{"name":"Lungile Chili","dealer":"Durban Central"},{"name":"Glynn Crookes","dealer":"Durban South"},{"name":"Anton Davie","dealer":"Durban South"},{"name":"Wandile Ntombela","dealer":"Durban South"},{"name":"Philile Ntombela","dealer":"Durban South"},{"name":"Alison Matthews","dealer":"Durban South"},{"name":"Brandon Kistensamy","dealer":"Durban South"},{"name":"Lindo Mhlongo","dealer":"Durban South"},{"name":"Samkelisiwe Sosibo","dealer":"Durban South"},{"name":"Mazwi Miya","dealer":"Durban South"},{"name":"Smangele Ntshangase","dealer":"Durban South"},{"name":"Ngcebo Mayeza","dealer":"Durban South"},{"name":"Siphephelo Nkwanyana","dealer":"Durban South"},{"name":"Ndumiso Mkhize","dealer":"Durban South"},{"name":"Nashlin Naidoo","dealer":"Durban South"},{"name":"Pregie Kannipan","dealer":"Durban South"},{"name":"Nhlakanipho Hlongwane","dealer":"Durban South"},{"name":"Kesavan Naidoo","dealer":"Durban South"},{"name":"Wesley Morris","dealer":"Durban South"},{"name":"Fawzia Husain","dealer":"Durban South"},{"name":"Jason Thutshini","dealer":"Durban South"},{"name":"Melissa Robertse","dealer":"Durban South"},{"name":"Tess Naidoo","dealer":"Durban South"},{"name":"Dean Findlay","dealer":"East London"},{"name":"Shane Luck","dealer":"East London"},{"name":"Cameron Venish","dealer":"East London"},{"name":"Leona Lloyd","dealer":"East London"},{"name":"Shirley Mejane","dealer":"East London"},{"name":"Pumlani Mqikela","dealer":"East London"},{"name":"Natasha van Jaarsveldt","dealer":"East London"},{"name":"Ndyebo Ndakisa","dealer":"East London"},{"name":"Sanda Pama","dealer":"East London"},{"name":"Theuns Du preez","dealer":"Edenvale"},{"name":"Andre Van coller","dealer":"Edenvale"},{"name":"Farhad Raheman","dealer":"Edenvale"},{"name":"Modise Seshibe","dealer":"Edenvale"},{"name":"Delano Segeel","dealer":"Edenvale"},{"name":"Jacques Swartz","dealer":"Edenvale"},{"name":"Kenny Banda","dealer":"Edenvale"},{"name":"Brendon Nel","dealer":"Edenvale"},{"name":"Anika Govender","dealer":"Edenvale"},{"name":"Francis Mkhari","dealer":"Edenvale"},{"name":"Muhammed Aziz","dealer":"Edenvale"},{"name":"Gareth Lloyd matthews","dealer":"Edenvale"},{"name":"Charmain Van Staaden","dealer":"Emalahleni (Witbank)"},{"name":"Patricia Lala","dealer":"Emalahleni (Witbank)"},{"name":"Michael Pillay","dealer":"Emalahleni (Witbank)"},{"name":"Jaen-Pierre Teles","dealer":"Emalahleni (Witbank)"},{"name":"Damian Brandon Elliott","dealer":"Emalahleni (Witbank)"},{"name":"Robbin Hauptfleisch","dealer":"Emalahleni (Witbank)"},{"name":"Gerrit De Beer","dealer":"Emalahleni (Witbank)"},{"name":"Eric Du Plessis","dealer":"Emalahleni (Witbank)"},{"name":"Thabang Sereba","dealer":"Emalahleni (Witbank)"},{"name":"Helena Van Wyk","dealer":"Emalahleni (Witbank)"},{"name":"Rudolph Adoins","dealer":"Emalahleni (Witbank)"},{"name":"Paul Griffin","dealer":"Emalahleni (Witbank)"},{"name":"Gemma Ellis","dealer":"Ermelo"},{"name":"Jan Minnaar","dealer":"Ermelo (NewCastele)"},{"name":"Tethelelo Mzinyane","dealer":"Ermelo"},{"name":"Willem Johannes van Aardt Fourie","dealer":"Ermelo"},{"name":"Bonisile Msibi","dealer":"Ermelo"},{"name":"Mohammed Momla","dealer":"Ermelo"},{"name":"Sandile Mncube","dealer":"Eshowe"},{"name":"Cassim Belcher","dealer":"Eshowe"},{"name":"Kenneth Mnguni","dealer":"Eshowe"},{"name":"Mbali Mthethwa","dealer":"Eshowe"},{"name":"Fiona Hassim","dealer":"Eshowe"},{"name":"Sam Danisa","dealer":"Eshowe"},{"name":"Jerome Rampersadh","dealer":"Eshowe"},{"name":"Sandile Cyril Ncanana","dealer":"Eshowe"},{"name":"Willie Scheepers","dealer":"Fourways"},{"name":"Matthew Crichton","dealer":"Fourways"},{"name":"Monica Hedder","dealer":"Fourways"},{"name":"Bright Ndlovu","dealer":"Fourways"},{"name":"Ashroedien Louw","dealer":"Fourways"},{"name":"Mohamed Sayed","dealer":"Fourways"},{"name":"Peter Ramasilo","dealer":"Fourways"},{"name":"Masheshnee Juggernat","dealer":"Fourways"},{"name":"Anita Prinsloo","dealer":"Fourways"},{"name":"Jakobus Michael Du Plessis","dealer":"Fourways"},{"name":"Joshua Gibson","dealer":"Fourways"},{"name":"Phumzile Nyandeni","dealer":"Fourways"},{"name":"James Bolleurs","dealer":"Fourways"},{"name":"Hendry Grung","dealer":"Fourways"},{"name":"Michael Maieane","dealer":"Fourways"},{"name":"Victoria Simelane","dealer":"Bassonia"},{"name":"Natasha Andrews","dealer":"Fourways"},{"name":"Thalia Sotiralis","dealer":"Fourways"},{"name":"Theo Pretorius","dealer":"Fourways"},{"name":"Ricardo Fernandes","dealer":"Fourways"},{"name":"Joshua Standers","dealer":"Fourways"},{"name":"Mpho Fortune Letsaba","dealer":"Fourways"},{"name":"Neron Fransman","dealer":"Fourways"},{"name":"Modise Seshibe","dealer":"Fourways"},{"name":"Mohana Sangarapillai","dealer":"Francistown"},{"name":"Puso Ookeditse","dealer":"Francistown"},{"name":"Monametsi Mosweu","dealer":"Francistown"},{"name":"Obakeng Tshukudu","dealer":"Francistown"},{"name":"Karabo Motlotlegi","dealer":"Francistown"},{"name":"Andries Toto","dealer":"Francistown"},{"name":"Badeti Tibone","dealer":"Gaborone"},{"name":"Mokhasi Michael Mokokwe","dealer":"Gaborone"},{"name":"Kabelo Caiphus","dealer":"Gaborone"},{"name":"Carlos Mbano Nyadza","dealer":"Gaborone"},{"name":"Bryan Tshepo Mokgalajwe","dealer":"Gaborone"},{"name":"Kagiso Rala","dealer":"Gaborone"},{"name":"Kemiso Monareng","dealer":"Gaborone"},{"name":"Nomsa Kebatlhalefe","dealer":"Gaborone"},{"name":"Kevin Lecage","dealer":"Gaborone"},{"name":"Sylvia Kaasnielsen","dealer":"Gaborone"},{"name":"Elandre Moore","dealer":"George"},{"name":"Jaco Pienaar","dealer":"George"},{"name":"Gavin Scheepers","dealer":"George"},{"name":"Johan Cronje","dealer":"George"},{"name":"Ruan Smith","dealer":"George"},{"name":"Twane Lourens","dealer":"George"},{"name":"Tascha Crause","dealer":"George"},{"name":"Adri Gerber","dealer":"Gezina"},{"name":"Renier Johannes van der Merwe","dealer":"Gezina"},{"name":"Llewellyn Landman","dealer":"Gezina"},{"name":"Riaan Opperman","dealer":"Gezina"},{"name":"Themba Maseko","dealer":"Gezina"},{"name":"Adrian Kruger","dealer":"Gezina"},{"name":"Hugo Meyer","dealer":"Gezina"},{"name":"Juan van Loggerenberg","dealer":"Gezina"},{"name":"Morne Nel","dealer":"Gezina"},{"name":"Peter Dube","dealer":"Gezina"},{"name":"Danie Jordaan","dealer":"Gezina"},{"name":"Gopo Mogaladi","dealer":"Gezina"},{"name":"Francois Combrink","dealer":"Gezina"},{"name":"Nadia De Villiers","dealer":"Gezina"},{"name":"Thean Reiners","dealer":"Gezina"},{"name":"Angelo Mount","dealer":"Gezina"},{"name":"Edmond Monare","dealer":"Gezina"},{"name":"JJ Storbeck","dealer":"Gezina"},{"name":"Louis Jordaan","dealer":"Gezina"},{"name":"Salome Nkadimeng","dealer":"Gezina"},{"name":"Paul Valentine","dealer":"Gezina"},{"name":"Michael Otto","dealer":"Gezina"},{"name":"Gerhard van Jaarsveldt","dealer":"Gezina"},{"name":"Riaan Du Plessis","dealer":"Gezina"},{"name":"Jonathan Swanevelder","dealer":"Gezina"},{"name":"Lappies Labuschagne","dealer":"Gobabis"},{"name":"Luandru Oberholzer","dealer":"Gobabis"},{"name":"Elanzo Beukes","dealer":"Gobabis"},{"name":"Niel Brink","dealer":"Gobabis"},{"name":"George van Tonder","dealer":"Gobabis"},{"name":"Mortimer Justice (Gaby) Grebe","dealer":"Graaff-Reinet"},{"name":"Nel-Marie Stumke","dealer":"Graaff-Reinet"},{"name":"Jaco le Roux","dealer":"Graaff-Reinet(Int)"},{"name":"Luan Smith","dealer":"Graaff-Reinet(Int)"},{"name":"Zanri Viljoen","dealer":"Graaff-Reinet(Int)"},{"name":"Sarie-Elana Venter","dealer":"Graaff-Reinet(Int)"},{"name":"Melissa van der Nest","dealer":"Graaff-Reinet(Int)"},{"name":"Jacobus J(Kolie) Louw","dealer":"Graaff-Reinet(Int)"},{"name":"Cecil Stumke","dealer":"Graaff-Reinet(Int)"},{"name":"Jan Frederik Steyl","dealer":"Groblersdal"},{"name":"Funky Maibelo","dealer":"Groblersdal"},{"name":"Given Ramupudu","dealer":"Groblersdal"},{"name":"Garth Wilson","dealer":"Groblersdal"},{"name":"Lynn Booyse","dealer":"Groblersdal"},{"name":"Wilson Molupe","dealer":"Groblersdal"},{"name":"Rufas Mdluli","dealer":"Groblersdal"},{"name":"Vanessa Scotland","dealer":"Groblersdal"},{"name":"Imran Khan","dealer":"Groblersdal"},{"name":"Thulani Gwebu","dealer":"Groblersdal"},{"name":"Monageng Joseph Magage","dealer":"Groblersdal"},{"name":"Brian Kaukonde","dealer":"Harare"},{"name":"Ronald Mujuru","dealer":"Harare"},{"name":"Tatenda Chikwekwete","dealer":"Harare"},{"name":"Rujeko Chimonyo","dealer":"Harare"},{"name":"Shelton Kudakwashe Mhiripiri","dealer":"Harare"},{"name":"Marshall Baradzanwa","dealer":"Harare"},{"name":"Cynthia Chimhanda","dealer":"Harare"},{"name":"Tinashe Rurevo","dealer":"Harare"},{"name":"Tsitsidzashe Mushosho","dealer":"Harare"},{"name":"Andre Gouws","dealer":"Hatfield"},{"name":"Sonja Steyn","dealer":"Hatfield"},{"name":"Domenic Hendriks","dealer":"Hatfield"},{"name":"Shane Groenewaldt","dealer":"Hatfield"},{"name":"Liana Crator","dealer":"Hatfield"},{"name":"Mpho Moloi","dealer":"Hatfield"},{"name":"Phenyo Matshidiso","dealer":"Hatfield"},{"name":"Peter Mosane","dealer":"Hatfield"},{"name":"Craig Ortmann","dealer":"Hatfield"},{"name":"Maynard Pretorius","dealer":"Hatfield"},{"name":"Refiloe Makau","dealer":"Hatfield"},{"name":"Thabang Mashego","dealer":"Hatfield"},{"name":"Malcolm Bredenkamp","dealer":"Hatfield"},{"name":"Willem Pretorius","dealer":"Hatfield"},{"name":"Mariaan Fourie","dealer":"Hatfield"},{"name":"Elmien van Onselen","dealer":"Hatfield"},{"name":"Thomas Khangale","dealer":"Hatfield"},{"name":"Siobhan Strydom","dealer":"Hatfield"},{"name":"Claire Atherstone","dealer":"Hatfield"},{"name":"Anton Erasmus","dealer":"Hatfield"},{"name":"Dean Ali","dealer":"Hatfield"},{"name":"Johan Olivier","dealer":"Hatfield"},{"name":"Sharleen Brider","dealer":"Hatfield"},{"name":"Ruan Herselman","dealer":"Hatfield"},{"name":"Niall Ingram","dealer":"Hatfield"},{"name":"Clive Hollard","dealer":"Heidelberg"},{"name":"LuVuyo Bukhulwana","dealer":"Heidelberg"},{"name":"Gabriel Maruping","dealer":"Heidelberg"},{"name":"Hein Howard","dealer":"Heidelberg"},{"name":"Leonard Grobbelaar","dealer":"Heidelberg"},{"name":"Ishmael Lusani Maseanoka","dealer":"Heidelberg"},{"name":"Louis Naidoo","dealer":"Heidelberg"},{"name":"Simon Jacob Ngale","dealer":"Heidelberg"},{"name":"Martin Liebenberg","dealer":"Heidelberg"},{"name":"Nellie Akintunde","dealer":"Heidelberg"},{"name":"Nomasonto Nhlapo","dealer":"Heidelberg"},{"name":"Gysbert Koen","dealer":"Heidelberg"},{"name":"Marie Oosthuizen","dealer":"Heidelberg"},{"name":"Cliff Davids","dealer":"Heidelberg"},{"name":"Clarence Mngadi","dealer":"Heidelberg"},{"name":"Nazeem Aziz","dealer":"Helderberg"},{"name":"Kolene Torlage","dealer":"Helderberg"},{"name":"Anthony Luyt","dealer":"Helderberg"},{"name":"Andre Swart","dealer":"Helderberg"},{"name":"Jaco Le Grange","dealer":"Helderberg"},{"name":"Robbie Nienaber","dealer":"Helderberg"},{"name":"Angilene Van Der Merwe","dealer":"Helderberg"},{"name":"Jordan Diesel","dealer":"Helderberg"},{"name":"Louise Jacobs","dealer":"Helderberg"},{"name":"Wayne Le Roux","dealer":"Hermanus"},{"name":"Hester Van Zyl","dealer":"Hermanus"},{"name":"Neil Marais","dealer":"Hermanus"},{"name":"Christiaan Swiegelaar","dealer":"Hermanus"},{"name":"Nicoline Smith","dealer":"Hermanus"},{"name":"Byron Faulds","dealer":"Hillcrest"},{"name":"Lee Stoltz","dealer":"Hillcrest"},{"name":"Tim Potgieter","dealer":"Hillcrest"},{"name":"Christopher John Walker","dealer":"Hillcrest"},{"name":"Sunitha Bissoon","dealer":"Hillcrest"},{"name":"Brandon Kistadu","dealer":"Hillcrest"},{"name":"Hlobisile Nxele","dealer":"Hillcrest"},{"name":"Sphiwe Hadebe","dealer":"Hillcrest"},{"name":"Lungisani Ngubane","dealer":"Hillcrest"},{"name":"Joanie JV Vuuren","dealer":"Hillcrest"},{"name":"Roan Nel","dealer":"Hillcrest"},{"name":"Singeant Selley","dealer":"Hoedspruit"},{"name":"Klippies Kritzinger","dealer":"Hoedspruit"},{"name":"Hannes Du Toit","dealer":"Hoedspruit"},{"name":"Venita Kapp","dealer":"Jeffreys Bay"},{"name":"Jacques Vivier","dealer":"Jeffreys Bay"},{"name":"Vincent Smith","dealer":"JHB South"},{"name":"Roger Machado","dealer":"JHB South"},{"name":"Mandla Masuku","dealer":"JHB South"},{"name":"Wisdom Nyati","dealer":"JHB South"},{"name":"Mei Mapokane","dealer":"JHB South"},{"name":"Dion De Melo","dealer":"JHB South"},{"name":"Aziz Khan","dealer":"JHB South"},{"name":"Kenosi Monametsi","dealer":"JHB South"},{"name":"Jason Roberts","dealer":"JHB South"},{"name":"Alyssa Holbeck","dealer":"JHB South"},{"name":"Patrick Harker","dealer":"JHB South"},{"name":"Marco Kotze","dealer":"JHB South"},{"name":"Shane Jackson","dealer":"JHB South"},{"name":"Anton Burger","dealer":"JHB South"},{"name":"Kuda Garufu","dealer":"JHB South"},{"name":"Tofique Carelse","dealer":"Kenilworth"},{"name":"Jason Kruger","dealer":"Kenilworth"},{"name":"Fareed Sakir","dealer":"Kenilworth"},{"name":"Graeme Standley","dealer":"Kenilworth"},{"name":"Thaheer Gallie","dealer":"Kenilworth"},{"name":"Samantha Jackson","dealer":"Kenilworth"},{"name":"Nassar Berdien","dealer":"Kenilworth"},{"name":"Alexander Kampies","dealer":"Kenilworth"},{"name":"Shubaynah Pietersen","dealer":"Kenilworth"},{"name":"Rahul Hamchanders","dealer":"Kenilworth"},{"name":"Robert Vogel","dealer":"Kenilworth"},{"name":"Liad Adreaanse","dealer":"Kenilworth"},{"name":"Mark Ables","dealer":"Kenilworth"},{"name":"Cobus Vorster","dealer":"Kimberley"},{"name":"Patrick Whelpton","dealer":"Kimberley"},{"name":"Derlin Kalander","dealer":"Kimberley"},{"name":"Eben Plaatjies","dealer":"Kimberley"},{"name":"Thabang Motsoeneng","dealer":"Kimberley"},{"name":"Arno Van Vuuren","dealer":"Kimberley"},{"name":"Jaco Van Heerden","dealer":"Kimberley"},{"name":"Warren Van Rensburg","dealer":"Kimberley"},{"name":"Eddie Khumalo","dealer":"Kimberley"},{"name":"Heinrich Bruhns","dealer":"Kimberley"},{"name":"Tshegofatso Michelle Gaitsiwe","dealer":"Kimberley"},{"name":"Fate Makhaga","dealer":"Kimberley"},{"name":"Boikanyo Milford Mathobela","dealer":"Kimberley"},{"name":"Ralph Pieterse","dealer":"Kimberley"},{"name":"Johan Hamman","dealer":"Kimberley"},{"name":"Tshepi Williams","dealer":"Kimberley"},{"name":"Sibusiso Qaco","dealer":"King Williams Town (Int)"},{"name":"Hector Mhlanga","dealer":"King Williams Town (Int)"},{"name":"Craig Nel","dealer":"King Williams Town (Int)"},{"name":"Ivo Vankeirsbilck","dealer":"King Williams Town (Int)"},{"name":"Lwazi Mbelu","dealer":"King Williams Town (Int)"},{"name":"Tango Qaba","dealer":"King Williams Town (Int)"},{"name":"Zilungile Jafta","dealer":"King Williams Town (Int)"},{"name":"Michelle Herridge","dealer":"Klerksdorp"},{"name":"Monde Mangala","dealer":"Klerksdorp"},{"name":"Marinda Fourie","dealer":"Klerksdorp"},{"name":"Gary Visagie","dealer":"Klerksdorp"},{"name":"Mike Loate","dealer":"Klerksdorp"},{"name":"Theuns Joubert","dealer":"Klerksdorp"},{"name":"Leone Pienaar","dealer":"Klerksdorp"},{"name":"Luan Gouws","dealer":"Klerksdorp"},{"name":"Ferdi Coetzee","dealer":"Klerksdorp"},{"name":"Genevieve Bruwer","dealer":"Klerksdorp"},{"name":"Jaco De Lange","dealer":"Knysna"},{"name":"Petra Lavery","dealer":"Knysna"},{"name":"Darren Nosworthy","dealer":"Knysna"},{"name":"Michelle Vorster-Bornmann","dealer":"Knysna"},{"name":"Gareth Webster","dealer":"Knysna"},{"name":"Donovan Rowland","dealer":"Knysna"},{"name":"Chris Koen","dealer":"Knysna"},{"name":"Brett Strachan","dealer":"Kokstad"},{"name":"Collen Jeftha","dealer":"Kokstad"},{"name":"Zayle Zietsman","dealer":"Kokstad"},{"name":"Lerlin Pillay","dealer":"Kokstad"},{"name":"Roxanne Adkins","dealer":"Kokstad"},{"name":"Lourens Jute","dealer":"Kokstad"},{"name":"Kyle Strachan","dealer":"Kokstad"},{"name":"Sheldon Russon","dealer":"Kokstad"},{"name":"Siyabulela Fadane","dealer":"Kokstad"},{"name":"Nicolaas Willem Olivier","dealer":"Kroonstad"},{"name":"Pablo Gomes","dealer":"Kroonstad"},{"name":"Alwyn Van Heerden","dealer":"Kroonstad"},{"name":"Timothy Shadrake Adam Bester","dealer":"Kroonstad"},{"name":"Paul V Kerckhoven","dealer":"Kyalami"},{"name":"Carryn-Ann MacDonald","dealer":"Kyalami"},{"name":"David Nkosi","dealer":"Kyalami"},{"name":"Shane Chetty","dealer":"Kyalami"},{"name":"Mario Beltrame","dealer":"Kyalami"},{"name":"Michael van der Merwe","dealer":"Kyalami"},{"name":"Liam Winter","dealer":"Kyalami"},{"name":"Leonard Twala","dealer":"Kyalami"},{"name":"Thembalihle Khanyi","dealer":"Kyalami"},{"name":"Alex Olivier","dealer":"Kyalami"},{"name":"Jody Jacobs","dealer":"Kyalami"},{"name":"Sisanda Hlutywa","dealer":"Kyalami"},{"name":"Gerrie Van der kaay","dealer":"Kyalami"},{"name":"Thandokazi (Thando) Mramba","dealer":"Kyalami"},{"name":"Mark Stanton","dealer":"Kyalami"},{"name":"Alastair Du Plessis","dealer":"Ladybrand"},{"name":"Dan-Jo Cronje","dealer":"Ladybrand"},{"name":"Werner Otto","dealer":"Ladybrand"},{"name":"Linda Mngadi","dealer":"Ladysmith"},{"name":"Willem Bosch","dealer":"Ladysmith"},{"name":"Mashengandile Pile Buthelezi","dealer":"Ladysmith"},{"name":"Nkanyiso Mndeni","dealer":"Ladysmith"},{"name":"Xolani Maduna","dealer":"Ladysmith"},{"name":"Thando Gumede","dealer":"Ladysmith"},{"name":"Siyabonga Hlatshwayo","dealer":"Ladysmith"},{"name":"Sbonelo Manyoni","dealer":"Ladysmith"},{"name":"Siyanda Magazi","dealer":"Ladysmith"},{"name":"Sinethemba Zwane","dealer":"Ladysmith"},{"name":"Siboniso Chamane","dealer":"Ladysmith"},{"name":"Alwyn Loots","dealer":"Ladysmith"},{"name":"Emmauel Masoa","dealer":"Ladysmith"},{"name":"Khaya Richard Ndlovu","dealer":"Ladysmith"},{"name":"Saki Prince Radebe","dealer":"Ladysmith"},{"name":"Deenesh Jagaroo","dealer":"Ladysmith"},{"name":"Ndumiso Zondi","dealer":"Ladysmith"},{"name":"Thulebona Kunene","dealer":"Ladysmith"},{"name":"Hayley Spencer","dealer":"Ladysmith"},{"name":"Sibusiso Ndebele","dealer":"Ladysmith"},{"name":"Joshua Shabalala","dealer":"Ladysmith"},{"name":"Thabo Sithole","dealer":"Ladysmith"},{"name":"Simphiwe Mdletshe","dealer":"Ladysmith"},{"name":"Charles Ueckermann","dealer":"Ladysmith"},{"name":"Abraham Johannes Jansen Van Vuuren","dealer":"Lephalale"},{"name":"Christine Jansen Van Vuuren","dealer":"Lephalale"},{"name":"Lara Jansen Van Vuuren","dealer":"Lephalale"},{"name":"Quanne Swales Vorster","dealer":"Lephalale"},{"name":"Gavin Lourens","dealer":"Lichtenburg"},{"name":"Elzabe Lewis","dealer":"Lichtenburg"},{"name":"Khumo Maphike","dealer":"Lichtenburg"},{"name":"Johan Smith","dealer":"Lichtenburg"},{"name":"Sandra Cronje","dealer":"Lichtenburg"},{"name":"Amogelang Mashoba","dealer":"Lichtenburg"},{"name":"Jimmy Masoko","dealer":"Lichtenburg"},{"name":"Pieter du Toit","dealer":"Lichtenburg"},{"name":"Reta Botes","dealer":"Lichtenburg"},{"name":"Bernice Crathorne","dealer":"Lichtenburg"},{"name":"Adelene Le Roux","dealer":"Lydenburg"},{"name":"Marna Louw","dealer":"Lydenburg"},{"name":"Rose Makuwa","dealer":"Lydenburg"},{"name":"Lucky Magahla","dealer":"Lydenburg"},{"name":"Danone Venter","dealer":"Lydenburg"},{"name":"Linda Willis","dealer":"Lydenburg"},{"name":"Henry Moyo","dealer":"Lydenburg"},{"name":"Francois Du Plessis","dealer":"Lydenburg"},{"name":"Louise De Witt","dealer":"Lydenburg"},{"name":"Zane De Paiva","dealer":"Mahikeng"},{"name":"Gaopalelwe Masibi","dealer":"Mahikeng"},{"name":"Oratile Matshidiso","dealer":"Mahikeng"},{"name":"Jimmy Masoko","dealer":"Mahikeng"},{"name":"Siphiwe Maungwe","dealer":"Mahikeng"},{"name":"Jaco Wepener","dealer":"Makhado"},{"name":"Richmond Sinthumule","dealer":"Makhado"},{"name":"Maggie Van Der Linde","dealer":"Makhado"},{"name":"Phumu Leshika","dealer":"Makhado"},{"name":"Elvis Foromo","dealer":"Makhado"},{"name":"Liezl Elzanne Lambert","dealer":"Makhado"},{"name":"Miche De Pradines","dealer":"Makhado"},{"name":"Duncan Koekemoer","dealer":"Makhado"},{"name":"Johann Schoonbee","dealer":"Makhado"},{"name":"Rudolf Hercules Visser","dealer":"Makhado"},{"name":"Hebert Ngomane","dealer":"Malalane"},{"name":"Gareth Pieterse","dealer":"Malalane"},{"name":"Trevor Chibaya","dealer":"Malalane"},{"name":"Tristen Braack","dealer":"Malalane"},{"name":"Fezile Mashele","dealer":"Malalane"},{"name":"Inge Van Der Schyff","dealer":"Malalane"},{"name":"Lune Smith","dealer":"Malalane"},{"name":"Jean Coetzee","dealer":"Malalane"},{"name":"Simon Hugo","dealer":"Malmesbury"},{"name":"Wynand Hugo","dealer":"Malmesbury"},{"name":"Abie Lewis","dealer":"Malmesbury"},{"name":"Ryno Benjamin","dealer":"Malmesbury"},{"name":"Willem Carel Greyling","dealer":"Malmesbury"},{"name":"Rochelle Nel","dealer":"Malmesbury"},{"name":"Cobus Edas","dealer":"Malmesbury"},{"name":"Lungile Msibi","dealer":"Manzini"},{"name":"Phila Khumalo","dealer":"Manzini"},{"name":"Michael Craigie","dealer":"Manzini"},{"name":"Thulasizwe Vilakati","dealer":"Manzini"},{"name":"Pedro Garcia","dealer":"Maputo"},{"name":"Cristiano Nhavotso","dealer":"Maputo"},{"name":"Aly Macome","dealer":"Maputo"},{"name":"Faruk Paulo","dealer":"Maputo"},{"name":"Tiago Agua","dealer":"Maputo"},{"name":"Ane Kruger","dealer":"Margate"},{"name":"Thembela Xolo","dealer":"Margate"},{"name":"Philani Mazubane","dealer":"Margate"},{"name":"Shani Mathews","dealer":"Margate"},{"name":"Anechia Werner","dealer":"Margate"},{"name":"Cobus Vermaak","dealer":"Matola"},{"name":"Tania Martinho Carlos Ezequiel","dealer":"Matola"},{"name":"Flavio Mbanze","dealer":"Matola"},{"name":"Edmilton da Conceicao Jaime Nhampossa","dealer":"Matola"},{"name":"Daniela Sao Miguel","dealer":"Matola"},{"name":"Nuno Darsan","dealer":"Matola"},{"name":"Evandro Fugao","dealer":"Matola"},{"name":"Anuario Juliasse","dealer":"Matola"},{"name":"Robin Ramisur","dealer":"Matola"},{"name":"Denise Carolina Chiau","dealer":"Matola"},{"name":"Ermelinda Jamisse","dealer":"Matola"},{"name":"Ivor Hatting","dealer":"Matola"},{"name":"Carel van der Westhuizen","dealer":"Matola"},{"name":"Jody Foss","dealer":"Mbabane"},{"name":"Majid Daude","dealer":"Mbabane"},{"name":"Jordan Badenhorst","dealer":"Mbabane"},{"name":"Michael Glassberg","dealer":"Menlyn"},{"name":"Mark Vermaak","dealer":"Menlyn"},{"name":"Francois Moolman","dealer":"Menlyn"},{"name":"Tanya Bezuidenhout","dealer":"Menlyn"},{"name":"Dale Bezuidenhout","dealer":"Menlyn"},{"name":"Ryno Swanepoel","dealer":"Menlyn"},{"name":"Obakeng Kungwane","dealer":"Menlyn"},{"name":"Justin Petrson","dealer":"Menlyn"},{"name":"Johan Theron","dealer":"Menlyn"},{"name":"Antone Retief","dealer":"Menlyn"},{"name":"Tiaan Gomes","dealer":"Menlyn"},{"name":"Bernice Van Wyk","dealer":"Menlyn"},{"name":"Garry Cochius","dealer":"Menlyn"},{"name":"Amor Fourie","dealer":"Menlyn"},{"name":"Pascalis Moiloa","dealer":"Menlyn"},{"name":"Kurt Simpson","dealer":"Menlyn"},{"name":"Evan Corbett","dealer":"Menlyn"},{"name":"Jeanne-Marie De La Rey","dealer":"Menlyn"},{"name":"Theo Banninga","dealer":"Menlyn"},{"name":"Daniel Phuti","dealer":"Menlyn"},{"name":"Jacques Louw","dealer":"Menlyn"},{"name":"Michelle Smith","dealer":"Menlyn"},{"name":"Floris Van Wyk","dealer":"Menlyn"},{"name":"Gerhard Van Niekerk","dealer":"Menlyn"},{"name":"Quentin Lindequi","dealer":"Menlyn"},{"name":"Jason Wentzel","dealer":"Menlyn"},{"name":"Mapule Maria Mokwena","dealer":"Menlyn"},{"name":"Tebogo Moumakwe","dealer":"Menlyn"},{"name":"Phillip Swart","dealer":"Menlyn"},{"name":"Tebogo Maselwa","dealer":"Menlyn"},{"name":"Vincent Ndhlovu","dealer":"Menlyn"},{"name":"Nicola Marobie","dealer":"Menlyn"},{"name":"Chris Ferreira","dealer":"Menlyn"},{"name":"Michael Dyman","dealer":"Menlyn"},{"name":"Robert De Jager","dealer":"Menlyn"},{"name":"Yolandi Bester","dealer":"Menlyn"},{"name":"Jannie Jacobs","dealer":"Menlyn"},{"name":"Ewald De Beer","dealer":"Menlyn"},{"name":"Trevor Chiloane","dealer":"Menlyn"},{"name":"Zack Froneman","dealer":"Menlyn"},{"name":"Marthinus Pienaar","dealer":"Menlyn"},{"name":"Tiara Govender","dealer":"Menlyn"},{"name":"Peter Khan","dealer":"Menlyn"},{"name":"Meshack Lekota","dealer":"Menlyn"},{"name":"Tebogo Nkgomba","dealer":"Menlyn"},{"name":"Jeanne-Marie De La Rey","dealer":"Menlyn"},{"name":"Francisco Gaie","dealer":"Menlyn"},{"name":"Kevin Poorun","dealer":"Menlyn"},{"name":"Byron Reece","dealer":"Menlyn"},{"name":"Vera Eybers","dealer":"Menlyn"},{"name":"Kimberly Jade Lamalettie","dealer":"Menlyn"},{"name":"Vuyo Hlela","dealer":"Menlyn"},{"name":"Christo Liebenberg","dealer":"Menlyn"},{"name":"Stefan Jansen van Vuuren","dealer":"Menlyn"},{"name":"De Wet Swart","dealer":"Menlyn"},{"name":"Craig Schoeman","dealer":"Middelburg"},{"name":"Karabo Mohlala","dealer":"Middelburg"},{"name":"Storm Breytenbach","dealer":"Middelburg"},{"name":"Mark Schutte","dealer":"Middelburg"},{"name":"Lana Ferries-Scott","dealer":"Middelburg"},{"name":"Ludwig Steyn","dealer":"Middelburg"},{"name":"Ronnie Khumalo","dealer":"Middelburg"},{"name":"Nelisiwe Portia Ndaba","dealer":"Middelburg"},{"name":"Jordan Jeffree","dealer":"Middelburg"},{"name":"Dawie Swanepoel","dealer":"Middelburg"},{"name":"Mike de Vries","dealer":"Middelburg"},{"name":"Deon Ras","dealer":"Modimolle"},{"name":"Mamikana Mndebele","dealer":"Modimolle"},{"name":"Thabo Gafane","dealer":"Modimolle"},{"name":"Stephan Wiese","dealer":"Modimolle"},{"name":"Aubrey Matlala","dealer":"Modimolle"},{"name":"Bennie Oosthuizen","dealer":"Mokopane"},{"name":"Tlou Walter Mabitsela","dealer":"Mokopane"},{"name":"Matlhaba Marvin Ledwaba","dealer":"Mokopane"},{"name":"Madelein Klopper","dealer":"Mokopane"},{"name":"Larnes Verwey","dealer":"Mokopane"},{"name":"Sunnyboy Rikhotso","dealer":"Mokopane"},{"name":"Ruffas Moela","dealer":"Mokopane"},{"name":"Hennie Knoesen","dealer":"Mokopane"},{"name":"Hanru Byleveld","dealer":"Mokopane"},{"name":"Jaco Barkhuizen","dealer":"Mokopane"},{"name":"Raymond Alec Krause","dealer":"Mokopane"},{"name":"Nicolaas Wolmarans","dealer":"Mokopane"},{"name":"Surina Oosthuizen","dealer":"Mokopane"},{"name":"Albert De Beer","dealer":"Mokopane"},{"name":"Rayno Myburgh","dealer":"Montana"},{"name":"JP Du Preez","dealer":"Montana"},{"name":"Dean De Villiers","dealer":"Montana"},{"name":"Marie-Louise Pienaar","dealer":"Montana"},{"name":"Mpumelelo Zulu","dealer":"Montana"},{"name":"Marthinus Dennecker","dealer":"Montana"},{"name":"Xandri Joubert","dealer":"Montana"},{"name":"Charles Blacklock","dealer":"Montana"},{"name":"Emile Peens","dealer":"Montana"},{"name":"Carlisha Pellencin","dealer":"Montana"},{"name":"Andrew van Eeden","dealer":"Montana"},{"name":"Wharen Ludeke","dealer":"Montana"},{"name":"Jennifer Vorster","dealer":"Montana"},{"name":"Ruan Breytenbach","dealer":"Montana"},{"name":"Yolanda Fourie","dealer":"Montana"},{"name":"Wanay Willemse","dealer":"Montana"},{"name":"Jienie Bezuidenhout","dealer":"Montana"},{"name":"Hendry Bouwer","dealer":"Montana"},{"name":"Robin Jooste","dealer":"Montana"},{"name":"Elize Groenewald","dealer":"Montana"},{"name":"Armand Janse van Vuuren","dealer":"Montana"},{"name":"Cobus Bester","dealer":"Montana"},{"name":"Sarel Jansen van Vuuren","dealer":"Montana"},{"name":"Redge Botha","dealer":"Montana"},{"name":"Werner Viljoen","dealer":"Montana"},{"name":"Marius Kriel","dealer":"Montana"},{"name":"Stefan Le Roux","dealer":"Montana"},{"name":"Shammy Naidoo","dealer":"Montana"},{"name":"Juan Du Toit","dealer":"Montana"},{"name":"Chavonne Delport","dealer":"Montana"},{"name":"Theophillus Tshaka","dealer":"Montana"},{"name":"Dewald du Preez","dealer":"Montana"},{"name":"Kerwyn Oliver","dealer":"Montana"},{"name":"Samantha Jaz-Nay Laka","dealer":"Montana"},{"name":"Charlene Joubert","dealer":"Montana"},{"name":"Ronan Gamble","dealer":"Montana"},{"name":"Armand van Wyk","dealer":"Montana"},{"name":"Sheldon Paulton","dealer":"Montana"},{"name":"Luan Kleyngeld","dealer":"Montana"},{"name":"Leonard Olivier","dealer":"Montana"},{"name":"Armand Botha","dealer":"Montana"},{"name":"Juan van der Westhuizen","dealer":"Montana"},{"name":"Hanno Fourie","dealer":"Montana"},{"name":"Nicolene du Plooy","dealer":"Montana"},{"name":"Yolandie Grobler","dealer":"Montana"},{"name":"Rico Knoetze","dealer":"Montana"},{"name":"Jacques van der Merwe","dealer":"Montana"},{"name":"Sias Heyns","dealer":"Montana"},{"name":"Divan Lerm","dealer":"Mossel Bay"},{"name":"Sizwe Mbaxa","dealer":"Mossel bay"},{"name":"Wernardt Botha","dealer":"Mossel bay"},{"name":"David Roux","dealer":"Mossel bay"},{"name":"Amthandile Zenzile","dealer":"Mossel bay"},{"name":"Dawid Steenkamp","dealer":"Mossel bay"},{"name":"Johlinda Swierczynski","dealer":"Mossel Bay"},{"name":"Kurt Johnson","dealer":"Mossel bay"},{"name":"Andile Xelegu","dealer":"Mossel Bay"},{"name":"Philasande Ndinisa","dealer":"Mthatha"},{"name":"Ziyanda Nongogo","dealer":"Mthatha"},{"name":"Nothemba Zethu","dealer":"Mthatha"},{"name":"Brian Fulela","dealer":"Mthatha"},{"name":"Lukhololwethu Mpambani","dealer":"Mthatha"},{"name":"Siphosakhe Madikizela","dealer":"Mthatha"},{"name":"Lwandiso Cetyiwe","dealer":"Mthatha"},{"name":"Shaun Van Zyl","dealer":"N1 City"},{"name":"Izan Nieuwoudt","dealer":"N1 City"},{"name":"Kevin Swarts","dealer":"N1 City"},{"name":"Jason Potgieter","dealer":"N1 City"},{"name":"Johan Geustyn","dealer":"N1 City"},{"name":"Niyaaz Fakier","dealer":"N1 City"},{"name":"Dwayne Van Den Berg","dealer":"N1 City"},{"name":"Nico Muller","dealer":"N1 City, Table Bay Mall & Table View"},{"name":"Kayla Marie Thompson","dealer":"N1 City"},{"name":"Tian Kwak","dealer":"N1 City"},{"name":"Adrian Stanley","dealer":"N1 City"},{"name":"Mariana Honiball","dealer":"N1 City"},{"name":"Charn\u00e9 Spillman","dealer":"N1 City"},{"name":"Ayesha Amardien","dealer":"N1 City"},{"name":"Grant Finlayson","dealer":"N1 City"},{"name":"Warren Munisamy","dealer":"N1 City"},{"name":"Janett McGowan","dealer":"N1 City"},{"name":"Warren Thorp","dealer":"N1 City, Table Bay Mall & Table View"},{"name":"Michael Ngomane","dealer":"Nelspruit"},{"name":"Matthew Olckers","dealer":"Nelspruit"},{"name":"Maryke Schrage","dealer":"Nelspruit"},{"name":"Rika Buck","dealer":"Nelspruit"},{"name":"Skye Nicholson","dealer":"Nelspruit"},{"name":"PD Terblanche","dealer":"Nelspruit & Malalane"},{"name":"Nico Grobler","dealer":"Nelspruit"},{"name":"Ryan Van der Merwe","dealer":"Nelspruit"},{"name":"Michael Uys","dealer":"Nelspruit"},{"name":"Michael Van Der Linde","dealer":"Nelspruit"},{"name":"Lian Enslin","dealer":"Nelspruit"},{"name":"Wiaan Pretorius","dealer":"Nelspruit"},{"name":"Peet Welthagen","dealer":"Nelspruit"},{"name":"Sias Gouws","dealer":"Nelspruit"},{"name":"Veon Whitticker","dealer":"Nelspruit"},{"name":"Madeleine Maree","dealer":"Nelspruit"},{"name":"Alfred Maluka","dealer":"Nelspruit"},{"name":"American Thamsanqa Ndhlovu","dealer":"Nelspruit"},{"name":"Amanda Barnard","dealer":"Nelspruit"},{"name":"Hennie Snyman","dealer":"Nelspruit"},{"name":"Scelo Ngcobo","dealer":"Newcastle"},{"name":"Muhammed Muzaffar Allijan","dealer":"Newcastle"},{"name":"Charlie Booyens","dealer":"Newcastle"},{"name":"Vishal Ramsander","dealer":"Newcastle"},{"name":"Marjorina Bruyns","dealer":"Newcastle"},{"name":"Vinolia Mohammad","dealer":"Newcastle"},{"name":"Wayne Simmonds","dealer":"Northcliff"},{"name":"Vivian Paulse","dealer":"Northcliff"},{"name":"Karin Brittz","dealer":"Northcliff"},{"name":"Thavi Pillay","dealer":"Northcliff"},{"name":"Armand Reyneke","dealer":"Northcliff"},{"name":"Itumeleng Moloi","dealer":"Northcliff"},{"name":"Gerald Khumalo","dealer":"Northcliff"},{"name":"Michelle Germishuys","dealer":"Northcliff"},{"name":"Mbulelo (Tebogo) Mkhize","dealer":"Northcliff"},{"name":"Drisden Crook","dealer":"Northcliff"},{"name":"Marius Weideman","dealer":"Northcliff"},{"name":"Nicole Olivier","dealer":"Northcliff"},{"name":"Clair Van der Merwe","dealer":"Northcliff"},{"name":"Malibongwe Mathias","dealer":"Northcliff"},{"name":"Lee-Ann Johns","dealer":"Northcliff"},{"name":"Kim Januarie","dealer":"Northcliff"},{"name":"Samuel Mdakane","dealer":"Northcliff"},{"name":"Thelo Marobela","dealer":"Northcliff"},{"name":"Tebogo Mkhize","dealer":"Northcliff"},{"name":"Trevino Pillay","dealer":"Northcliff"},{"name":"Sipho Mazibuko","dealer":"Northcliff"},{"name":"Shaun Naude","dealer":"Northcliff"},{"name":"Tapfuma Tsvuura","dealer":"Northcliff"},{"name":"Brad Poole","dealer":"Northcliff"},{"name":"Jaco Jacobs","dealer":"Ongwediva"},{"name":"Justina Munenguni","dealer":"Ongwediva"},{"name":"Kristof Ndjamba","dealer":"Ongwediva"},{"name":"Ian Mervin Gowaseb","dealer":"Ongwediva"},{"name":"Immanuel Humuyela","dealer":"Ongwediva"},{"name":"Theunny Thomas","dealer":"Ongwediva"},{"name":"Cecil Engelbrecht","dealer":"Otjiwarongo"},{"name":"Willie Husselmann","dealer":"Otjiwarongo"},{"name":"Coenraad Hendrik Loubser","dealer":"Oudtshoorn"},{"name":"Sherlock Joubert","dealer":"Oudtshoorn"},{"name":"Elize Grobler","dealer":"Oudtshoorn"},{"name":"Charl Koen","dealer":"Paarl"},{"name":"Lonwabo Dlakiya","dealer":"Paarl"},{"name":"Jean Talbot","dealer":"Paarl"},{"name":"Carel Duvenhage","dealer":"Paarl"},{"name":"Christopher Erasmus","dealer":"Paarl"},{"name":"Henry Britz","dealer":"Paarl"},{"name":"Peet Du Preez","dealer":"Paarl"},{"name":"Rainier Talbot","dealer":"Paarl"},{"name":"Stefanie Hartman","dealer":"Paarl"},{"name":"Lizelle Steenkamp-Cook","dealer":"Paarl"},{"name":"Hendrik Albertus Steenkamp","dealer":"Paarl"},{"name":"Cedric Jones","dealer":"Piet Retief"},{"name":"Mark Hohls","dealer":"Piet Retief"},{"name":"Kobus Hughes","dealer":"Piet Retief"},{"name":"Mbali Nkosi","dealer":"Piet Retief"},{"name":"Simphiwe Chirwa","dealer":"Piet Retief"},{"name":"Mfundo Khumalo","dealer":"Piet Retief"},{"name":"Ronan Paul","dealer":"Piet Retief"},{"name":"Francois Du Toit","dealer":"Piet Retief"},{"name":"Petrie van der Merwe","dealer":"Pietermaritzburg"},{"name":"Trevor Ngcobo","dealer":"Pietermaritzburg"},{"name":"Brendan Ainley","dealer":"Pietermaritzburg"},{"name":"Rista Van Rooyen","dealer":"Pietermaritzburg"},{"name":"Shishendren Subbiah","dealer":"Pietermaritzburg"},{"name":"Ayanda Justice Dladla","dealer":"Pietermaritzburg"},{"name":"Musa Mthembu","dealer":"Pietermaritzburg"},{"name":"Keshan Reddy","dealer":"Pietermaritzburg"},{"name":"Britney Landman","dealer":"Pietermaritzburg"},{"name":"Zinhle Munemo","dealer":"Pietermaritzburg"},{"name":"Marco Smit","dealer":"Pietermaritzburg"},{"name":"TJ Mavundla","dealer":"Pietermaritzburg"},{"name":"Muhammed Tajoodeen","dealer":"Pietermaritzburg"},{"name":"Nomvula Regina Ngcobo","dealer":"Pietermaritzburg"},{"name":"Lwandle Simamane","dealer":"Pietermaritzburg"},{"name":"Yashik Surujilal","dealer":"Pietermaritzburg"},{"name":"Darryl Sclanders","dealer":"Pinetown"},{"name":"Devan Kannipan","dealer":"Pinetown"},{"name":"Camilene Gungapersad","dealer":"Pinetown"},{"name":"Alvin Sadanand","dealer":"Pinetown"},{"name":"Debrah Mchunu","dealer":"Pinetown"},{"name":"Hayden Bowes","dealer":"Pinetown"},{"name":"Norman Pillay","dealer":"Pinetown"},{"name":"Khetho Xaba","dealer":"Pinetown"},{"name":"Nhlanhla Gumede","dealer":"Pinetown"},{"name":"Faiz Essop","dealer":"Pinetown"},{"name":"Wessley Ndlovu","dealer":"Pinetown"},{"name":"Ryan Bonnin","dealer":"Pinetown"},{"name":"Hector Mkwanazi","dealer":"Pinetown"},{"name":"Jordasche Narainsamy","dealer":"Pinetown"},{"name":"Ruan Benson","dealer":"Pinetown"},{"name":"Robin Longhurst","dealer":"Pinetown"},{"name":"Shaun Ramiah","dealer":"Pinetown"},{"name":"Wasim Basheer","dealer":"Pinetown"},{"name":"Waheed Kahn","dealer":"Pinetown"},{"name":"Sydney Campbell","dealer":"Pinetown"},{"name":"Johannes Casparus Rootman","dealer":"Polokwane"},{"name":"Marco Kruger","dealer":"Polokwane"},{"name":"Kgaogelo Nathomo Nchabeleng","dealer":"Polokwane"},{"name":"Vongani Langa","dealer":"Polokwane"},{"name":"Lesedi Shaun Lapane","dealer":"Polokwane"},{"name":"Patrick Lekoloana","dealer":"Polokwane"},{"name":"David Kgwatalala","dealer":"Polokwane"},{"name":"Phuti Phukubye","dealer":"Polokwane"},{"name":"Tsakani Samuel Manyike","dealer":"Polokwane"},{"name":"Maxwell Nefale","dealer":"Polokwane"},{"name":"Modibe Johannes Madia","dealer":"Polokwane"},{"name":"Steven van der Merwe","dealer":"Port Alfred"},{"name":"Yoshika Naidoo","dealer":"Port Alfred"},{"name":"Johan Duvenhage","dealer":"Port Alfred"},{"name":"Robert Avis","dealer":"Port Alfred"},{"name":"John Els","dealer":"Port Elizabeth"},{"name":"Luyanda Sigula","dealer":"Port Elizabeth"},{"name":"Samantha Beldon","dealer":"Port Elizabeth"},{"name":"Lamla Myoli","dealer":"Port Elizabeth"},{"name":"Lieze-Mari Horsford","dealer":"Port Elizabeth"},{"name":"Neil Wentzel","dealer":"Port Elizabeth"},{"name":"Nazli Abrahams","dealer":"Port Elizabeth"},{"name":"Henry Goboza","dealer":"Port Elizabeth"},{"name":"Craig Dunnington","dealer":"Port Elizabeth & Jeffreys Bay"},{"name":"Vinesh Bawjee","dealer":"Port Elizabeth"},{"name":"Portia January","dealer":"Port Elizabeth"},{"name":"Sonja Ferrero","dealer":"Port Elizabeth"},{"name":"Paul Bedford","dealer":"Port Elizabeth"},{"name":"Bradley Mould","dealer":"Port Elizabeth"},{"name":"Ronin Ludick","dealer":"Potchefstroom"},{"name":"Barrie Buys","dealer":"Potchefstroom"},{"name":"Tshepo Dipale","dealer":"Potchefstroom"},{"name":"Catelin Greenwood","dealer":"Potchefstroom"},{"name":"Isaac Pelele","dealer":"Potchefstroom"},{"name":"Juan Slabbert","dealer":"Potchefstroom"},{"name":"Jaco Booysen","dealer":"Potchefstroom"},{"name":"Sylvester Schultz","dealer":"Potchefstroom"},{"name":"Ruan Kok","dealer":"Potchefstrrom"},{"name":"Patrick Casey","dealer":"Queenstown"},{"name":"Vera Lieberum","dealer":"Queenstown"},{"name":"Chad Naidoo","dealer":"Queenstown"},{"name":"Ayanda Dumezweni","dealer":"Queenstown"},{"name":"Lusanda Ndwanda","dealer":"Queenstown"},{"name":"Zizi Poni","dealer":"Queenstown"},{"name":"Mark Wilson","dealer":"Queenstown"},{"name":"Tallman Swartbooi","dealer":"Queenstown"},{"name":"Sbongile Mathebula","dealer":"Queenstown"},{"name":"Gavin Maistry","dealer":"Rivonia"},{"name":"Jerome Doorsamy","dealer":"Rivonia"},{"name":"Yvonne Wolhuter","dealer":"Rivonia"},{"name":"Siphelele Qegu","dealer":"Rivonia"},{"name":"Matthew Dolbey","dealer":"Rivonia"},{"name":"Patricia Van Greunen","dealer":"Rivonia"},{"name":"Lloyd Nzama","dealer":"Rivonia"},{"name":"Jason Pullinger","dealer":"Rivonia"},{"name":"Nico Basson","dealer":"Rivonia"},{"name":"Dewan Uys","dealer":"Robertson"},{"name":"Pieter Bezuidenhout","dealer":"Robertson"},{"name":"Pr\u00e9gin Pinto","dealer":"Robertson"},{"name":"Nadine Fowler","dealer":"Robertson"},{"name":"Bertie Nel","dealer":"Robertson"},{"name":"Gerhard Botha","dealer":"Robertson"},{"name":"Ehrich Kruger","dealer":"Robertson"},{"name":"Malcolm du Plessis","dealer":"Rosebank"},{"name":"Jaco Niemand","dealer":"Rosebank"},{"name":"Jenny Gasa","dealer":"Rosebank"},{"name":"Nthabiseng Moloto","dealer":"Rosebank"},{"name":"Maria Motsoeneng","dealer":"Rosebank"},{"name":"Daniel Bokaba","dealer":"Rosebank"},{"name":"Thapelo Matee","dealer":"Rosebank"},{"name":"Nellie Mangoe","dealer":"Rosebank"},{"name":"Sylvester Ngobeni","dealer":"Rosebank"},{"name":"Enthea Mbewe","dealer":"Rosebank"},{"name":"Martin Combrink","dealer":"Rosebank"},{"name":"Zunicka Marais","dealer":"Rosebank"},{"name":"Jimmy Ndlovu","dealer":"Rosebank"},{"name":"Richard Letswalo","dealer":"Rosebank"},{"name":"Stevens Kubheka","dealer":"Rosebank"},{"name":"Tumelo Seopa","dealer":"Rosebank"},{"name":"Velile Tshabalala","dealer":"Rosebank"},{"name":"Melusi Msibi","dealer":"Rosebank"},{"name":"Gugu Mhambi","dealer":"Rosebank"},{"name":"Aphelele Mtakati","dealer":"Rosebank"},{"name":"Tshepo Moloi","dealer":"Rosebank"},{"name":"Sifiso Sibeko","dealer":"Rosebank"},{"name":"Delisile Zwane","dealer":"Rosebank"},{"name":"Moshe Leope","dealer":"Rosebank"},{"name":"Martha Mdlalose","dealer":"Rosebank"},{"name":"Ofentse Phale","dealer":"Rosebank"},{"name":"Lwandise Ntshangase","dealer":"Rosebank"},{"name":"Sigourney Sphesihle Mvubu","dealer":"Rosebank"},{"name":"Phemelo Mabowa","dealer":"Rosebank"},{"name":"Hope Masetla","dealer":"Rosebank"},{"name":"Gugulethu Mndebele","dealer":"Rosebank"},{"name":"Candice Rudolph","dealer":"Rosebank"},{"name":"Mark Singh","dealer":"Rosebank / Bramley"},{"name":"Keitumetse Matake","dealer":"Rosebank"},{"name":"Masego Mohlala","dealer":"Rosebank"},{"name":"Jabu Chabangu","dealer":"Rustenburg"},{"name":"Anneke Smit","dealer":"Rustenburg"},{"name":"Danica Cherry","dealer":"Rustenburg"},{"name":"Temike Jankowitz","dealer":"Rustenburg"},{"name":"Mackie Van Der Berg","dealer":"Rustenburg"},{"name":"Christo Van den Berg","dealer":"Rustenburg"},{"name":"Wernon Teessen","dealer":"Rustenburg"},{"name":"Ridwan Bulbulia","dealer":"Rustenburg"},{"name":"Laramy Gouws","dealer":"Rustenburg"},{"name":"Divan du Preez","dealer":"Rustenburg"},{"name":"Deon Kotze","dealer":"Rustenburg"},{"name":"Brenda Mars","dealer":"Rustenburg"},{"name":"Mothusi Mlambo","dealer":"Rustenburg"},{"name":"Margoriet Seeley","dealer":"Rustenburg"},{"name":"Louis Wolmarans","dealer":"Rustenburg"},{"name":"Werner Janse van Rensburg","dealer":"Rustenburg"},{"name":"Moshe Selemoseng","dealer":"Rustenburg"},{"name":"Stefan Wedeman","dealer":"Rustenburg"},{"name":"Zandre Van Der Westhuizen","dealer":"Rustenburg"},{"name":"Eric Muradzikwa","dealer":"Rustenburg"},{"name":"Anzo Ashcroft","dealer":"Rustenburg"},{"name":"Thapelo Kobesa","dealer":"Rustenburg"},{"name":"Bart Harmse","dealer":"Rustenburg"},{"name":"Stefan Van Tonder","dealer":"Rustenburg"},{"name":"Shantal Naidoo","dealer":"Salt Rock"},{"name":"Elaine Pinky Mpanza","dealer":"Salt Rock"},{"name":"Mlungisi Sishi","dealer":"Salt Rock"},{"name":"Nivaal Samduth","dealer":"Salt Rock"},{"name":"Nico De Jager","dealer":"Salt Rock"},{"name":"Quintin Loch","dealer":"Salt Rock"},{"name":"Lee-Anne Mthembu","dealer":"Salt Rock"},{"name":"Gisela Witthoft","dealer":"Salt Rock"},{"name":"Jeandre Van Der Merwe","dealer":"Salt Rock"},{"name":"Zama Ngcobo","dealer":"Salt Rock"},{"name":"Christo Saidt","dealer":"Salt Rock"},{"name":"Schalk Burger","dealer":"Salt Rock"},{"name":"Mlungisi Sishi","dealer":"Salt Rock"},{"name":"Jithen Raghunadan","dealer":"Salt Rock"},{"name":"Joshua Rigby","dealer":"Sandton"},{"name":"Brandon Spence","dealer":"Sandton"},{"name":"Bianca Rahme","dealer":"Sandton"},{"name":"Jessey Morrison","dealer":"Sandton"},{"name":"Baxter Pollock","dealer":"Sandton"},{"name":"Caesar Iya","dealer":"Sandton"},{"name":"Zaahid Baderdien","dealer":"Sandton"},{"name":"Shiela Mothobi","dealer":"SASA"},{"name":"Thys Roberts","dealer":"SASA"},{"name":"Jason Skelton","dealer":"SASA"},{"name":"Cristine Knight","dealer":"SASA"},{"name":"Dominic Nzimande","dealer":"SASA"},{"name":"Herman Robbertse","dealer":"SASA"},{"name":"Danie Labuschagne","dealer":"SASA"},{"name":"Yakoob Nanabhay","dealer":"SASA"},{"name":"Diederik Durand","dealer":"SASA"},{"name":"Oscar Mashavha","dealer":"SASA"},{"name":"Carl Theron","dealer":"SASA"},{"name":"Wian Martin Greyling","dealer":"SASA"},{"name":"Ryno Matthysen","dealer":"SASA"},{"name":"Claude Gulston","dealer":"SASA"},{"name":"Natash Bastian","dealer":"SASA"},{"name":"Muhammed Ravgee","dealer":"SASA"},{"name":"Miyelani Success Manzini","dealer":"SASA"},{"name":"Rose Mthimunye","dealer":"SASA Head Office"},{"name":"Valentia Senokoane","dealer":"SASA Head Office"},{"name":"Aidan Moffet","dealer":"SASA Marketing / Penquin"},{"name":"Michele Rogers","dealer":"SASA Marketing / Penquin"},{"name":"Neil Robertson","dealer":"SASA Marketing / Penquin"},{"name":"Elsab\u00e9 Oosthuizen","dealer":"SASA Marketing / SpitFire"},{"name":"Angie Shipalane","dealer":"SASA Marketing / SpitFire"},{"name":"Siphiwe Botman","dealer":"SASA Marketing / SpitFire"},{"name":"Tami White","dealer":"SASA Marketing / SpitFire"},{"name":"Azelle Steyn","dealer":"Sasolburg"},{"name":"Kevin Malope","dealer":"Sasolburg"},{"name":"Ernest Van Den Heever","dealer":"Sasolburg"},{"name":"Rowan Hampson","dealer":"Scottburgh"},{"name":"Rocky Pillay","dealer":"Scottburgh"},{"name":"Gregory Mjanyelwa","dealer":"Scottburgh"},{"name":"Siyabonga Tshange","dealer":"Scottburgh"},{"name":"Deborah Shepherd","dealer":"Scottburgh"},{"name":"Shannon Papenfus","dealer":"Scottburgh"},{"name":"Sonja Strydom","dealer":"Secunda"},{"name":"Neville Mittan","dealer":"Secunda"},{"name":"Lucky Nkosi","dealer":"Secunda"},{"name":"Amor Cawood-Wilson","dealer":"Secunda"},{"name":"Stephens Mashishi","dealer":"Secunda"},{"name":"Elizna Delport","dealer":"Secunda"},{"name":"Riaan Joubert","dealer":"Secunda"},{"name":"Ruben Kriel","dealer":"Secunda"},{"name":"Org Robbertse","dealer":"Silver Lakes"},{"name":"Kabelo Mashabe","dealer":"Silver Lakes"},{"name":"Charlene Meyer","dealer":"Silver Lakes"},{"name":"Anastasia Pienaar","dealer":"Silver Lakes"},{"name":"Lundi Diko","dealer":"Silver Lakes"},{"name":"Cecilia Kapp","dealer":"Silver Lakes"},{"name":"Wiehann Van den Heever","dealer":"Silver Lakes"},{"name":"Leigh Baker","dealer":"Silver Lakes"},{"name":"Keletso Shuping","dealer":"Silver Lakes"},{"name":"Wiehann Van den Heever","dealer":"Silver Lakes"},{"name":"Sydney Mpolokeng","dealer":"Silver Lakes"},{"name":"Ncobile Ngobeni","dealer":"Silver Lakes"},{"name":"Bhekummusa Khumalo","dealer":"Silver Lakes"},{"name":"Tebatso Khusha Mathenjwa","dealer":"Silver Lakes"},{"name":"Marius Stemmet","dealer":"Silver Lakes"},{"name":"Maxine Magubane","dealer":"Silver Lakes"},{"name":"Francois Marais","dealer":"Silver Lakes"},{"name":"Albertina Mashigo","dealer":"Silver Lakes"},{"name":"Theo Mohr","dealer":"Silver Lakes"},{"name":"Elmi Van Beek","dealer":"South Coast"},{"name":"Judy Comins","dealer":"South Coast"},{"name":"Laurent Mthwane","dealer":"South Coast"},{"name":"Slindokuhle Luthuli","dealer":"South Coast"},{"name":"Kyle Smith","dealer":"South Coast"},{"name":"Magdalena Catharina Labuschagne","dealer":"South Coast"},{"name":"Natasha Nel","dealer":"South Coast"},{"name":"Shila Minti","dealer":"South Coast"},{"name":"Kim Krystal Harvey","dealer":"South Coast"},{"name":"Tristan Day","dealer":"South Coast"},{"name":"Dane De Villiers","dealer":"South Coast"},{"name":"Mtamo Mzimasi","dealer":"South Coast"},{"name":"Morne Potgieter","dealer":"South Coast"},{"name":"Sarah Jenkins","dealer":"South Coast"},{"name":"Zipho Ntuli","dealer":"South Coast"},{"name":"Celest Coetzee","dealer":"South Coast"},{"name":"Jonathan Blackman","dealer":"Springs"},{"name":"Dakalo Nephalama","dealer":"Springs"},{"name":"Avril Du Toit","dealer":"Springs"},{"name":"Patrick Harker","dealer":"Springs"},{"name":"Alan Bolus","dealer":"Springs"},{"name":"Vusi Masuluke","dealer":"Springs"},{"name":"Glen Humphries","dealer":"Springs"},{"name":"William Kruger","dealer":"Springs"},{"name":"David Aitken","dealer":"Springs"},{"name":"Brandon Wright","dealer":"Springs"},{"name":"Nicole Shewry","dealer":"Stellenbosch"},{"name":"Stephan Snyman","dealer":"Stellenbosch"},{"name":"Calvin Theron","dealer":"Stellenbosch"},{"name":"Nicolas Lee","dealer":"Stellenbosch"},{"name":"Kobus Olivier","dealer":"Stellenbosch"},{"name":"Christopher Erasmus","dealer":"Stellenbosch"},{"name":"Kian Groenewald","dealer":"Stellenbosch"},{"name":"Nicola Radinovic","dealer":"Stellenbosch"},{"name":"Pieter Rossouw","dealer":"Strijdompark"},{"name":"Koos Van Blerk","dealer":"Strijdompark"},{"name":"Seun Nxele","dealer":"Strijdompark"},{"name":"Simon Nape","dealer":"Strijdompark"},{"name":"Ludi Viljoen","dealer":"Strijdompark"},{"name":"Thato Matabane","dealer":"Strijdompark"},{"name":"Tumelo Motsepe","dealer":"Strijdompark"},{"name":"Johan Albertus (Nico) Greyvenstein","dealer":"Strijdompark"},{"name":"Ryan Schwartzel","dealer":"Strijdompark"},{"name":"Eddie Van Der Merwe","dealer":"Strijdompark"},{"name":"Jermaine Bala","dealer":"Strijdompark"},{"name":"Ntokozo (Brian) Magudulela","dealer":"Strijdompark"},{"name":"Thabo Ramokonopi","dealer":"Strijdompark"},{"name":"Conrad Buytendorp","dealer":"Strijdompark"},{"name":"Debbie Shepherd","dealer":"Strijdompark"},{"name":"Naeem Essop","dealer":"Strijdompark"},{"name":"Ayanda Nigel Sibanda","dealer":"Strijdompark"},{"name":"Dale Diergaardt","dealer":"Swakopmund"},{"name":"Pierre Diedericks","dealer":"Swakopmund"},{"name":"Chantell Adams","dealer":"Swakopmund"},{"name":"Sabrina Van Staden","dealer":"Swakopmund"},{"name":"Lorita Botes","dealer":"Swakopmund"},{"name":"Magda Visser","dealer":"Swellendam"},{"name":"Christo Ahlers","dealer":"Swellendam"},{"name":"Esmarie Pienaar","dealer":"Swellendam"},{"name":"Heinrich Coetzee","dealer":"Swellendam"},{"name":"Roelof Campher","dealer":"Swellendam"},{"name":"Ken Burton","dealer":"Table Bay Mall"},{"name":"Craig Schwartz","dealer":"Table Bay Mall"},{"name":"Caronne Urquhart","dealer":"Table Bay Mall"},{"name":"Shadley Petersen","dealer":"Table Bay Mall"},{"name":"David Vivier","dealer":"Table Bay Mall"},{"name":"Morne Du Preez","dealer":"Table View"},{"name":"Wakefield Smith","dealer":"Table View"},{"name":"Roual van der Merwe","dealer":"Table View"},{"name":"Paull Dion Longmore","dealer":"Table View"},{"name":"Chantal Schwenk","dealer":"Table View"},{"name":"Fabian Herman","dealer":"Table View"},{"name":"Leigh Niemann","dealer":"Table View"},{"name":"Domenique Wolmarans","dealer":"Table View"},{"name":"Andr\u00e9 Bothma","dealer":"Table View"},{"name":"Lezeritte Smith","dealer":"Table View"},{"name":"Johannes Jacobus Christiaan Slabber","dealer":"Table View"},{"name":"Fazeela Bhuran Griffiths","dealer":"Table View"},{"name":"Samuel Janse Van Rensburg","dealer":"Table View"},{"name":"Sean Truter","dealer":"Table view"},{"name":"Micke De Lange","dealer":"Table view"},{"name":"Kenan Cemil Uzunoglu","dealer":"Table View"},{"name":"Sienie Koch","dealer":"Table View"},{"name":"Johan Grobler","dealer":"Table View & Table bay Mall"},{"name":"Jason Louwrens","dealer":"Table View and Table Bay Mall"},{"name":"Eben von Waltsleben","dealer":"Tygervalley"},{"name":"Magda Kruger","dealer":"Tygervalley"},{"name":"Morn\u00e9 Scriven","dealer":"Tygervalley"},{"name":"Peter Botha","dealer":"Tygervalley"},{"name":"Samantha Bell","dealer":"Tygervalley"},{"name":"Anthony Botha","dealer":"Tygervalley"},{"name":"Shaun Palvi","dealer":"Tygervalley"},{"name":"Neville Steenkamp","dealer":"Tygervalley"},{"name":"Dewald Van Der Merwe","dealer":"Tygervalley"},{"name":"Chad Damon","dealer":"Tygervalley"},{"name":"Tania Bailey","dealer":"Tygervalley"},{"name":"Trevor Bester","dealer":"Tygervalley"},{"name":"Toufeeq Mathews","dealer":"Tygervalley"},{"name":"Antwa Bell","dealer":"Tygervalley"},{"name":"Wynand Mans","dealer":"Tygervalley"},{"name":"Llewellyn Everts","dealer":"Tygervalley"},{"name":"Brent Heaton","dealer":"Tygervalley"},{"name":"Jonathan Ross","dealer":"Tygervalley"},{"name":"Wickus Ferreira","dealer":"Tygervalley"},{"name":"Keegan Naicker","dealer":"Tygervalley"},{"name":"Brandon Theron","dealer":"Tygervalley"},{"name":"Vaughn Van Stavel","dealer":"Tygervalley"},{"name":"Ruann Van Wyk","dealer":"Tzaneen"},{"name":"Akani Mokwena","dealer":"Tzaneen"},{"name":"Musa Bvuma","dealer":"Tzaneen"},{"name":"Malcolm Bulula","dealer":"Tzaneen"},{"name":"Gideon Modiba","dealer":"Tzaneen"},{"name":"Edmond Monare","dealer":"Tzaneen"},{"name":"Chichi Makgato","dealer":"Tzaneen"},{"name":"Tsakani Samuel Manyike","dealer":"Tzaneen"},{"name":"Elizma Koekemoer","dealer":"Tzaneen"},{"name":"Lauren Laum","dealer":"Tzaneen"},{"name":"Theuns Basson","dealer":"Tzaneen"},{"name":"Paul Paunde","dealer":"Tzaneen"},{"name":"Vanessa Mathebula","dealer":"Tzaneen"},{"name":"Daniel Phoshoko","dealer":"Tzaneen"},{"name":"Stephen Mashunu","dealer":"Tzaneen"},{"name":"Steve Harmse","dealer":"Tzaneen"},{"name":"Phoebe Khasalela","dealer":"Tzaneen"},{"name":"Emmanual Marhule","dealer":"Tzaneen"},{"name":"Jan Beukes","dealer":"Tzaneen"},{"name":"Stephen Maponya","dealer":"Tzaneen"},{"name":"Diane Wiggil","dealer":"Tzaneen"},{"name":"Kendrick Levings","dealer":"Tzaneen"},{"name":"Martin Mohale","dealer":"Tzaneen"},{"name":"Donna Mc Culloch","dealer":"Umhlanga"},{"name":"Big Boy Motala","dealer":"Umhlanga"},{"name":"Justin Ramulu","dealer":"Umhlanga"},{"name":"Shikara Naidoo","dealer":"Umhlanga"},{"name":"Shaeem Haniff","dealer":"Umhlanga"},{"name":"Jeffrey Grant","dealer":"Umhlanga"},{"name":"Phumelele Ngema","dealer":"Umhlanga"},{"name":"Dinesh Ramdas","dealer":"Umhlanga"},{"name":"Zethu Ngcobo","dealer":"Umhlanga"},{"name":"Pragasan Naidoo","dealer":"Umhlanga"},{"name":"Lee-Shaine Meyers","dealer":"Umhlanga"},{"name":"Linda Shabalala","dealer":"Umhlanga"},{"name":"Christopher John Walker","dealer":"Umhlanga"},{"name":"Kwazi Ngubeni","dealer":"Umhlanga"},{"name":"Naleen Ramlukhan","dealer":"Umhlanga"},{"name":"Jaques Kruger","dealer":"Umhlanga"},{"name":"Sandile Zulu","dealer":"Umhlanga"},{"name":"Shane Sewkumar","dealer":"Umhlanga"},{"name":"Shenelle De ladegourdie","dealer":"Umhlanga"},{"name":"Anelisa Allegra Dlamini","dealer":"Umhlanga"},{"name":"Thabiso Zakwe","dealer":"Umhlanga"},{"name":"Jade Robyn","dealer":"Umhlanga"},{"name":"Sphamaandla Xulu","dealer":"Umhlanga"},{"name":"Luke Grobler","dealer":"Umhlanga"},{"name":"Hanson Naidoo","dealer":"Umhlanga"},{"name":"Terence Ngiba","dealer":"Umhlanga"},{"name":"Erin Walker","dealer":"Upington (Int)"},{"name":"Frank Swiegelaar","dealer":"Upington (Int)"},{"name":"Jeanne Pierre Fryer","dealer":"Upington (Int)"},{"name":"Pio Fogolin","dealer":"Vereeniging"},{"name":"Meshack Moeketsi","dealer":"Vereeniging"},{"name":"Leonora Joubert","dealer":"Vereeniging"},{"name":"Gerrie van der Merwe","dealer":"Vereeniging"},{"name":"Brandon Barnard","dealer":"Vereeniging"},{"name":"Johnny Language","dealer":"Vereeniging"},{"name":"Katleho Mopeli","dealer":"Vereeniging"},{"name":"Arne Loubser","dealer":"Vereeniging/Sasolburg"},{"name":"Shaun Bennett","dealer":"Vereeniging"},{"name":"Ernst (Stompie) Hugo","dealer":"Vredenburg"},{"name":"Ernst Hugo","dealer":"Vredenburg"},{"name":"Avril Williams","dealer":"Vredenburg"},{"name":"Amanda Campher","dealer":"Vredenburg"},{"name":"Jacques Swart","dealer":"Vredendal"},{"name":"Elze Pols","dealer":"Vredendal"},{"name":"Riaan Pieters","dealer":"Vryburg"},{"name":"Izak Mollentze","dealer":"Vryburg"},{"name":"Dennis Jones","dealer":"Vryheid"},{"name":"Clarissa Maree","dealer":"Vryheid"},{"name":"Ruth Simelane","dealer":"Vryheid"},{"name":"Stefan Kruger","dealer":"Vryheid"},{"name":"Denver Torlage","dealer":"Vryheid"},{"name":"Nahvad Tooispan","dealer":"Walvis Bay"},{"name":"Benrico Pretorius","dealer":"Walvis Bay"},{"name":"Ben Koekemoer","dealer":"Walvis Bay"},{"name":"Eldrin Gowaseb","dealer":"Walvis Bay"},{"name":"Herman Woite","dealer":"Welkom"},{"name":"Bongane Mthembu","dealer":"Welkom"},{"name":"Piet Botha","dealer":"Welkom"},{"name":"Frederick Jacobus van der Westhuizen","dealer":"West Rand"},{"name":"Lyle van der Westhuizen","dealer":"West Rand"},{"name":"Louis Meyer","dealer":"West Rand"},{"name":"Moses Sibanda Jamela","dealer":"West Rand"},{"name":"Jaco Van Rooyen","dealer":"West Rand"},{"name":"Juan Theo van Zyl","dealer":"West Rand"},{"name":"Minnaar Hoekstra","dealer":"West Rand"},{"name":"Andre Bronkhorst","dealer":"West Rand"},{"name":"William Nel","dealer":"West Rand"},{"name":"Angelique Grobbelaar","dealer":"West Rand"},{"name":"Nkululeko Msomi","dealer":"West Rand"},{"name":"Mercedes Ramohoebo","dealer":"West Rand"},{"name":"Duncan Powell","dealer":"West Rand"},{"name":"Patrizia Taljaard","dealer":"West Rand"},{"name":"Candice Rudolph","dealer":"West Rand"},{"name":"Donnely Curtis Delcase Pietersen","dealer":"West Rand"},{"name":"Chanel Van der\u00a0 Merwe","dealer":"West Rand"},{"name":"Hendrik Petrus Putter","dealer":"West Rand"},{"name":"Rudi Loots","dealer":"West Rand"},{"name":"Melanie Pascoe","dealer":"West Rand"},{"name":"Lizelle Couto","dealer":"West Rand"},{"name":"Hermann Malan Otto","dealer":"West Rand"},{"name":"Dale Scott`","dealer":"West Rand"},{"name":"Janco Bruyns","dealer":"Windhoek"},{"name":"Chaldrick Gariseb","dealer":"Windhoek"},{"name":"Hupee Zauana","dealer":"Windhoek"},{"name":"Joe Losper","dealer":"Windhoek"},{"name":"Denique Kotze","dealer":"Windhoek"},{"name":"Freddie Louwrens","dealer":"Windhoek"},{"name":"JJ Rocher","dealer":"Windhoek/ Gobabis"},{"name":"Deoni Diedericks","dealer":"Windhoek"},{"name":"Jun\u00e8 Buchholz","dealer":"Windhoek"},{"name":"Marius Richter","dealer":"Windhoek"},{"name":"Arno Reyneke","dealer":"Windhoek"},{"name":"Wietz Meyer","dealer":"Windhoek"},{"name":"Cody van Wyk","dealer":"Windhoek"},{"name":"Charl Oosthuizen","dealer":"Windhoek"},{"name":"Gerrit Kruger","dealer":"Windhoek"},{"name":"Devin Bezuidenhout","dealer":"Windhoek"},{"name":"Andre Gouws","dealer":"Windhoek/ Gobabis"},{"name":"Lize de Witt","dealer":"Worcester"},{"name":"Gert du Plessis","dealer":"Worcester"},{"name":"Johann Van Zyl","dealer":"Worcester"},{"name":"Andre Van der Vyver","dealer":"Worcester"},{"name":"Henning Viljoen","dealer":"Worcester"},{"name":"Carmin Bird","dealer":"Worcester"},{"name":"Greg Read","dealer":"Worcester"},{"name":"Wiehann van Tonder","dealer":"Worcester"},{"name":"Derick Engelbrecht","dealer":"Worcester"},{"name":"Gideon Jansen van Vuuren","dealer":"Worcester"},{"name":"Juwayne Mowers","dealer":"Worcester"},{"name":"Linzey Stander","dealer":"Worcester"},{"name":"Gurshwin Davids","dealer":"Worcester"},{"name":"Roland Witthoft","dealer":"Zululand"},{"name":"Daryl Naidoo","dealer":"Zululand"},{"name":"Neva Bekker","dealer":"Zululand"},{"name":"Bongani Zulu","dealer":"Zululand"},{"name":"Adrian Van Zyl","dealer":"Zululand"},{"name":"Zo Nkambule","dealer":"Zululand"},{"name":"Nathi Mthembu","dealer":"Zululand"}];
+
+// ── STRING UTILITIES ───────────────────────────────────
+const BRANDS = ['suzuki','cmh','vw','volkswagen','toyota','ford','honda','nissan',
+  'hyundai','kia','mazda','mitsubishi','renault','peugeot','opel','chevrolet',
+  'isuzu','mercedes','bmw','audi','jeep','land rover','lexus','volvo','mahindra'];
+
+function norm(s) {
+  return String(s||'').toLowerCase()
+    .replace(/\bvd\b/g,'van der')
+    .replace(/[^a-z0-9 ]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function tokens(s) { return norm(s).split(' ').filter(Boolean); }
+function lev(a,b) {
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>j===0?i:0));
+  for(let j=1;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function strSim(a,b) {
+  const na=norm(a),nb=norm(b);
+  if(!na||!nb) return 0; if(na===nb) return 1;
+  return 1-lev(na,nb)/Math.max(na.length,nb.length);
+}
+function tokSim(a,b) {
+  const ta=new Set(tokens(a)),tb=new Set(tokens(b));
+  if(!ta.size||!tb.size) return 0;
+  return [...ta].filter(t=>tb.has(t)).length/new Set([...ta,...tb]).size;
+}
+function noBrands(s) {
+  let r=norm(s);
+  for(const b of BRANDS) r=r.replace(new RegExp('\\b'+b+'\\b','g'),'');
+  return r.replace(/\s+/g,' ').trim();
+}
+function nameSim(a,b) {
+  const na=norm(a),nb=norm(b); if(na===nb) return 1;
+  const ta=tokens(a),tb=tokens(b);
+  const shorter=ta.length<=tb.length?ta:tb, longer=ta.length<=tb.length?tb:ta;
+  const cov=shorter.length?shorter.filter(t=>longer.some(lt=>strSim(t,lt)>0.8)).length/shorter.length:0;
+  return Math.max(strSim(na,nb),tokSim(na,nb),cov*0.95);
+}
+function dealerLocSim(a,b) {
+  // Compare only the location part (after stripping brand words)
+  const la=noBrands(a), lb=noBrands(b);
+  if(!la&&!lb) return 1;   // both are brand-only strings e.g. "Suzuki"
+  if(!la||!lb) return 0.1; // one has a location, the other is brand-only
+  return Math.max(strSim(la,lb),tokSim(la,lb));
+}
+
+// ── MASTER LIST INDEX ──────────────────────────────────
+// Built ONCE at load time. Key = first-name-token.
+const _mIdx = {};
+for(const e of MASTER_LIST) {
+  const k=norm(e.name).split(' ')[0];
+  if(!_mIdx[k]) _mIdx[k]=[];
+  _mIdx[k].push(e);
+}
+
+// Resolve a quiz participant to their master list entry — called ONCE per participant.
+// Returns a master entry key string "Name|Dealer" or null.
+function resolveToMaster(p) {
+  const fn=norm(p.name).split(' ')[0];
+
+  // Collect candidates: exact key + fuzzy keys (handles "care"→"carel" etc.)
+  const seen=new Set(), cands=[];
+  const addKey=k=>{if(!seen.has(k)&&_mIdx[k]){seen.add(k);cands.push(..._mIdx[k]);}};
+  addKey(fn);
+  // Only check short fuzzy keys to keep this fast (no full O(n) scan)
+  for(const k of Object.keys(_mIdx)) {
+    if(!seen.has(k) && fn.length>=3 && k.length>=3 && k[0]===fn[0] && strSim(fn,k)>=0.80)
+      addKey(k);
+  }
+  if(!cands.length) return null;
+
+  let best=null, bestS=0;
+  for(const m of cands) {
+    const ns=nameSim(p.name, m.name);
+    const ds=dealerLocSim(p.dealer, m.dealer);
+    const s=ns*0.40+ds*0.60;
+    if(s>bestS) { bestS=s; best=m; }
+  }
+  // Both name AND dealer must match meaningfully
+  if(!best) return null;
+  const finalNS=nameSim(p.name,best.name);
+  const finalDS=dealerLocSim(p.dealer,best.dealer);
+  if(finalNS<0.50||finalDS<0.55) return null;
+  return norm(best.name)+'|'+norm(best.dealer);
+}
+
+// ── FALLBACK DIRECT MATCH (when master list doesn't resolve) ───
+// Strict: surname tokens must match AND dealer location must match.
+function directMatch(p1,p2) {
+  const t1=tokens(p1.name), t2=tokens(p2.name);
+  const fn1=t1[0]||'', sn1=t1.slice(1).join(' ');
+  const fn2=t2[0]||'', sn2=t2.slice(1).join(' ');
+
+  // First names must be similar
+  if(strSim(fn1,fn2)<0.75) return false;
+  // If both have surnames, they must be similar
+  if(sn1&&sn2&&nameSim(sn1,sn2)<0.70) return false;
+  // Dealer locations must match
+  if(dealerLocSim(p1.dealer,p2.dealer)<0.65) return false;
+  return true;
+}
+
+// ── CLUSTERING ─────────────────────────────────────────
+// Pre-resolves all participants ONCE, then clusters in one fast pass.
+function cluster(participants) {
+  // Step 1: resolve every participant to master ONCE — O(n * |master|)
+  const resolved = participants.map(p => resolveToMaster(p));
+
+  // Step 2: group by master key (exact same master entry = definitely same person)
+  const masterGroups = {};
+  const unresolved = [];
+  participants.forEach((p,i) => {
+    const key = resolved[i];
+    if(key) {
+      if(!masterGroups[key]) masterGroups[key]=[];
+      masterGroups[key].push(i);
+    } else {
+      unresolved.push(i);
+    }
+  });
+
+  // Step 3: for unresolved, do pairwise fallback — but only among unresolved
+  // Use union-find for clustering
+  const par = Array.from({length:participants.length},(_,i)=>i);
+  function find(x){return par[x]===x?x:(par[x]=find(par[x]));}
+  function union(x,y){const px=find(x),py=find(y);if(px!==py)par[px]=py;}
+
+  // Union all participants in each master group
+  for(const key of Object.keys(masterGroups)) {
+    const grp=masterGroups[key];
+    for(let k=1;k<grp.length;k++) union(grp[0],grp[k]);
+  }
+
+  // Union unresolved participants that pass directMatch
+  // unresolved is typically small (participants with vague names/dealers)
+  for(let a=0;a<unresolved.length;a++) {
+    for(let b=a+1;b<unresolved.length;b++) {
+      const i=unresolved[a], j=unresolved[b];
+      if(directMatch(participants[i],participants[j])) union(i,j);
+    }
+  }
+
+  // Step 4: collect final groups
+  const groups={};
+  for(let i=0;i<participants.length;i++) {
+    const r=find(i);
+    if(!groups[r]) groups[r]=[];
+    groups[r].push(i);
+  }
+  return Object.values(groups);
+}
+
+// Pick canonical name/dealer for a cluster, enriched from master list
+function canonical(entries) {
+  // Prefer entries with both a surname and a proper dealer
+  const sorted=[...entries].sort((a,b)=>{
+    const aFull=(a.name.trim().includes(' ')?1:0)+(noBrands(a.dealer).length>2?1:0);
+    const bFull=(b.name.trim().includes(' ')?1:0)+(noBrands(b.dealer).length>2?1:0);
+    if(bFull!==aFull) return bFull-aFull;
+    return b.name.length-a.name.length||b.dealer.length-a.dealer.length;
+  });
+  const base=sorted[0];
+
+  // Enrich from master list if possible
+  const mKey=resolveToMaster(base);
+  if(!mKey) return base;
+  const masterEntry=MASTER_LIST.find(e=>norm(e.name)+'|'+norm(e.dealer)===mKey);
+  if(!masterEntry) return base;
+
+  const masterName=masterEntry.name;
+  const masterDealer=masterEntry.dealer;
+  // Use master name if it has a surname and base doesn't
+  const useName=(!base.name.includes(' ')&&masterName.includes(' '))?masterName:base.name;
+  // Use master dealer if base dealer is brand-only (no location)
+  const useDealer=noBrands(base.dealer).length<2?masterDealer:base.dealer;
+  return {...base, name:useName, dealer:useDealer};
+}
+
+// ── MONTHLY ────────────────────────────────────────────
+// Extract the earliest quiz date and quiz name from a raw Mentimeter sheet.
+// Date is in col 0 of the first data row. Quiz name is the session title in col 3 of the header.
+function extractQuizMeta(raw) {
+  let hdrIdx = -1;
+  for (let i = 0; i < Math.min(raw.length, 20); i++) {
+    if ((raw[i]||[]).some(c => typeof c === 'string' && c.trim().toLowerCase().endsWith(': score'))) {
+      hdrIdx = i; break;
+    }
+  }
+  // Quiz name: col 3 of header row (the session/welcome field), strip trailing colon
+  let quizName = '';
+  if (hdrIdx >= 0) {
+    const col3 = String((raw[hdrIdx]||[])[3] || '').replace(/:+$/, '').trim();
+    if (col3 && col3.length > 3 && !col3.toLowerCase().includes('score')) quizName = col3;
+  }
+  // Date: col 0 of first data row after header
+  let quizDate = null;
+  const firstData = hdrIdx >= 0 ? (raw[hdrIdx + 1] || []) : [];
+  const rawDate = firstData[0];
+  if (rawDate) {
+    if (typeof rawDate === 'number') {
+      // Excel serial date (days since 1900-01-01, with Lotus 1-2-3 bug offset)
+      quizDate = new Date((rawDate - 25569) * 86400 * 1000);
+    } else {
+      const s = String(rawDate);
+      const m = s.match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+      if (m) quizDate = new Date(+m[1], +m[2]-1, +m[3]);
+    }
+  }
+  return { quizName, quizDate };
+}
+
+async function runMonthly() {
+  const btn=document.getElementById('mo-btn'), loader=document.getElementById('mo-loader');
+  btn.disabled=true; loader.classList.add('on');
+  try {
+    // Parse all files, extract quiz meta for date-based sorting
+    const parsed = [];
+    for (let i=0;i<S.moFiles.length;i++) {
+      const raw = await readFile(S.moFiles[i]);
+      const meta = extractQuizMeta(raw);
+      const r = parseSheet(raw);
+      parsed.push({ meta, rows: r.rows });
+    }
+    // Sort by quiz date ascending (earliest first) — works regardless of upload order
+    parsed.sort((a, b) => {
+      if (!a.meta.quizDate && !b.meta.quizDate) return 0;
+      if (!a.meta.quizDate) return 1;
+      if (!b.meta.quizDate) return -1;
+      return a.meta.quizDate - b.meta.quizDate;
+    });
+    // Build weeks with auto-generated labels from quiz name
+    const weeks = parsed.map((p, i) => {
+      let label = p.meta.quizName || `Week ${i+1}`;
+      if (label.length > 42) label = label.slice(0, 40) + '…';
+      return { label, rows: p.rows };
+    });
+    const labels = weeks.map(w => w.label);
+    const all = [];
+    weeks.forEach((w,wi) => w.rows.forEach(r => all.push({...r, wi})));
+    const groups = cluster(all);
+    const merged = groups.map(g => {
+      const entries = g.map(i => all[i]);
+      const can = canonical(entries);
+      const wt = weeks.map(()=>null);
+      entries.forEach(e => { wt[e.wi] = wt[e.wi]===null ? e.total : Math.max(wt[e.wi],e.total); });
+      const total = wt.reduce((s,v)=>s+(v||0), 0);
+      return {name:can.name, dealer:can.dealer, wt, total, entries};
+    });
+    merged.sort((a,b)=>b.total-a.total);
+    merged.forEach((r,i)=>{ r.rank = i+1; });
+    const dups = groups
+      .filter(g => new Set(g.map(i=>norm(all[i].name))).size > 1)
+      .map(g => g.map(i=>all[i]))
+      .sort((a,b)=>{const na=canonical(a).name.toLowerCase(),nb=canonical(b).name.toLowerCase();return na<nb?-1:na>nb?1:0;});
+    S.moData = {merged, labels, weeks, dups};
+    renderMonthly(S.moData);
+    document.getElementById('hdr-dl-mo').style.display = 'flex';
+  } catch(err) {
+    document.getElementById('mo-out').innerHTML = `<div class="alert alert-err">❌ ${esc(err.message)}</div>`;
+    console.error(err);
+  }
+  btn.disabled=false; loader.classList.remove('on');
+}
+
+function renderMonthly({merged, labels, dups}) {
+  if (!merged.length) {
+    document.getElementById('mo-out').innerHTML=`<div class="alert alert-warn">⚠️ No data found.</div>`;
+    return;
+  }
+  const wkHdrs = labels.map(l=>`<th class="c">${esc(l)}</th>`).join('');
+  const trows = merged.map(r=>{
+    const rkd = r.rank<=3
+      ? `<span class="rk${r.rank}">${['🥇','🥈','🥉'][r.rank-1]}</span>`
+      : `<span class="rank-cell">${r.rank}</span>`;
+    const wCells = r.wt.map(v=>
+      v===null ? `<td class="c dash">—</td>` : `<td class="c">${v.toLocaleString()}</td>`
+    ).join('');
+    return `<tr><td class="rank-cell">${rkd}</td><td class="name-cell">${esc(r.name)}</td><td class="dealer-cell">${esc(r.dealer)}</td>${wCells}<td class="c tot">${r.total.toLocaleString()}</td></tr>`;
+  }).join('');
+  let dupHtml = '';
+  if (dups.length) {
+    const items = dups.map(g => {
+      const can = canonical(g);
+      const rows = g.map(e=>`<div class="dup-entry"><span class="dn">${esc(e.name)}</span><span style="margin:0 4px;color:var(--text3)">·</span><span class="dd">${esc(e.dealer)||'<em>no dealership</em>'}</span><span class="wk">${esc(labels[e.wi])}</span></div>`).join('');
+      return `<div class="dup-group"><div class="dup-hdr"><strong>Merged as: ${esc(can.name)}</strong><span class="dup-badge">AUTO-MATCHED</span></div><div class="dup-entries">${rows}</div></div>`;
+    }).join('');
+    dupHtml=`<div style="margin-top:20px">
+      <div style="font-size:.70rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:7px">Auto-Matched <span class="cnt">${dups.length} groups</span></div>
+      <div class="alert alert-warn">⚠️ These entries were automatically merged. Review to confirm.</div>
+      ${items}</div>`;
+  }
+  document.getElementById('mo-out').innerHTML=`
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val blue">${merged.length}</div><div class="stat-lbl">Participants</div></div>
+      <div class="stat"><div class="stat-val">${labels.length}</div><div class="stat-lbl">Weeks</div></div>
+      <div class="stat"><div class="stat-val red">${dups.length}</div><div class="stat-lbl">Auto-Matched</div></div>
+      <div class="stat"><div class="stat-val">${(merged[0]?.total||0).toLocaleString()}</div><div class="stat-lbl">Top Total</div></div>
+    </div>
+    ${dupHtml}
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-hdr-l">
+          <h2>Monthly Leaderboard</h2>
+          <span class="cnt">${merged.length} participants</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th class="c">Rank</th><th>Name &amp; Surname</th><th>Dealership</th>${wkHdrs}<th class="c">Grand Total</th></tr></thead>
+          <tbody>${trows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── EXCEL EXPORT ───────────────────────────────────────
+function applyStyles(ws, nrows, ncols) {
+  const blueHdr = { fill:{patternType:'solid',fgColor:{rgb:'003399'}}, font:{bold:true,color:{rgb:'FFFFFF'},sz:11}, alignment:{horizontal:'center'} };
+  for (let c=0;c<ncols;c++) {
+    const a = XLSX.utils.encode_cell({r:0,c});
+    if (ws[a]) ws[a].s = blueHdr;
+  }
+  for (let r=1;r<nrows;r++) {
+    const bg = r%2===0?'F0F2F8':'FFFFFF';
+    for (let c=0;c<ncols;c++) {
+      const a = XLSX.utils.encode_cell({r,c});
+      if (!ws[a]) ws[a]={v:'',t:'s'};
+      const isTotal = c===ncols-1;
+      ws[a].s = {
+        fill:{patternType:'solid',fgColor:{rgb:isTotal?'EEF2FF':bg}},
+        font:{bold:c===0||isTotal, color:{rgb:isTotal?'003399':'0D1533'}, sz:10},
+        alignment:{horizontal:c<=2?'left':'center'},
+        border:{bottom:{style:'thin',color:{rgb:'DDE2EF'}}}
+      };
+    }
+  }
+}
+
+function exportWeekly() {
+  if (!S.wkData) return;
+  const {rows} = S.wkData;
+  const data = [
+    ['Rank','Name & Surname','Dealership','Total'],
+    ...rows.map(r => [r.rank, r.name, r.dealer, r.total])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:7},{wch:32},{wch:30},{wch:12}];
+  applyStyles(ws, data.length, data[0].length);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Weekly Leaderboard');
+  XLSX.writeFile(wb, `Weekly_Leaderboard_${dateStr()}.xlsx`);
+}
+
+function exportMonthly() {
+  if (!S.moData) return;
+  const {merged, labels} = S.moData;
+  const data = [
+    ['Rank','Name and Surname','Dealership',...labels,'Grand Total'],
+    ...merged.map(r => [r.rank, r.name, r.dealer, ...r.wt.map(v=>v===null?'—':v), r.total])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:7},{wch:32},{wch:30},...labels.map(()=>({wch:22})),{wch:14}];
+  applyStyles(ws, data.length, data[0].length);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Monthly Leaderboard');
+  XLSX.writeFile(wb, `Monthly_Leaderboard_${dateStr()}.xlsx`);
+}
+
+// ── UTILS ──────────────────────────────────────────────
+function fmtBytes(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+function dateStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+
+</script>
+</body>
+</html>
